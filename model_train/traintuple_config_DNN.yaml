@@ -1,0 +1,147 @@
+meta:
+  #skim_dir: "/eos/user/a/ayeagle/skim_v2_noUnc"
+  skim_dir: "/eos/cms/store/group/phys_higgs/cmshmm/vdamante/skim_v3"
+  selection: "(Signal_Fit) & (VBF)"
+  output_dir: "/eos/user/a/ayeagle/H_mumu/parsed_tuples/skim_v3_mk1/"
+
+era_processes:
+  Run3_2022:
+    #- Data_Full
+    - DYto2Mu_MLL105To160
+    - TT
+    - EWK_2Mu2J_MLL_105to160_herwig
+    - VV
+    - VBFHto2Mu_M125_amcatnlo
+    - GluGluHto2Mu_amcatnlo
+  Run3_2022EE:
+    #- Data_Full
+    - DYto2Mu_MLL105To160
+    - TT
+    - EWK_2Mu2J_MLL_105to160_herwig
+    - VV
+    - VBFHto2Mu_M125_amcatnlo
+    - GluGluHto2Mu_amcatnlo
+  Run3_2023:
+    # - Data_EGamma0
+    # - Data_EGamma1
+    # - Data_Muon
+    # - Data_MuonEG
+    - DYto2Mu_MLL105To160
+    - TT
+    - EWK_2Mu2J_MLL_105to160_herwig
+    - VV
+    - VBFHto2Mu_M125_amcatnlo
+    - GluGluHto2Mu_amcatnlo
+  Run3_2023BPix:
+    # - Data_EGamma0
+    # - Data_EGamma1
+    # - Data_Muon
+    # - Data_MuonEG
+    - DYto2Mu_MLL105To160
+    - TT
+    - EWK_2Mu2J_MLL_105to160_herwig
+    - VV
+    - VBFHto2Mu_M125_amcatnlo
+    - GluGluHto2Mu_amcatnlo
+  Run3_2024:
+    #- Data_Full
+    - DYto2Mu_MLL105To160_VBFFiltered
+    - DYto2Mu_MLL105To160
+    - TT
+    - EWK_2Mu2J_MLL_105to160_herwig
+    - VV
+    - VBFHto2Mu_M125_amcatnlo
+    - GluGluHto2Mu_amcatnlo
+  Run3_2025:
+    #- Data_Muon
+    #- Data_MuonEG
+    - DYto2Mu_MLL105To160_VBFFiltered
+    - DYto2Mu_MLL105To160
+    - TT
+    - EWK_2Mu2J_MLL_105to160_herwig
+    - VV
+    - VBFHto2Mu_M125_amcatnlo
+    - GluGluHto2Mu_amcatnlo
+
+
+columns_config:
+  metadata_columns:
+    - FullEventId
+    - dataset
+    - era
+    - event
+    - process
+    - VBF
+    - ggF
+    - Signal_Fit
+    - H_sideband
+  data_columns:
+    - mu1_eta
+    - mu1_pt
+    - mu1_phi
+    - mu2_eta
+    - mu2_pt
+    - mu2_phi
+    - dR_mumu
+    - eta_mumu
+    - cosTheta_CS
+    - phi_mumu
+    - m_mumu
+    - pt_mumu
+    - y_mumu
+    - phi_CS
+    - R_pt
+    - minDeltaEtaSigned
+    - minDeltaPhi
+    - Zeppenfeld_Var
+    - pt_centrality
+    - vbfjet1_phi
+    - vbfjet1_eta
+    - vbfjet1_pt
+    - vbfjet1_btagPNetQvG
+    - vbfjet1_y
+    - vbfjet1_area
+    - vbfjet2_phi
+    - vbfjet2_eta
+    - vbfjet2_pt
+    - vbfjet2_btagPNetQvG
+    - vbfjet2_y
+    - vbfjet2_area
+    - m_jj
+    - delta_eta_jj
+    - pt_vbfj1j2
+    - SoftJetCleanedActivity_N
+    - SoftJetCleanedActivity_ptSum
+    - N_SelectedJets
+    # For VBF
+    # - leadingjet_pt
+    # - leadingjet_eta
+    # - leadingjet_phi
+    # - leadingjet_btagPNetQvG
+    # - leadingjet_btagPNetCvL
+    # - subleadingjet_pt
+    # - subleadingjet_eta
+    # - subleadingjet_phi
+    # - subleadingjet_btagPNetQvG
+    # - subleadingjet_btagPNetCvL
+    # - thirdjet_pt
+    # - thirdjet_eta
+    # - thirdjet_phi
+    # - thirdjet_btagPNetQvG
+    # - thirdjet_btagPNetCvL
+    # - fourthjet_pt
+    # - fourthjet_eta
+    # - fourthjet_phi
+    # - fourthjet_btagPNetQvG
+    # - fourthjet_btagPNetCvL
+  weight_columns:
+    - weight__Central
+    - genWeight
+    - weight_lumi
+    - weight_xs
+    - weight_pu
+    - weight_mu1_LoosePFIso_MediumID_Central
+    - weight_mu1_MediumID_Trk_Central
+    - weight_mu2_LoosePFIso_MediumID_Central
+    - weight_mu2_MediumID_Trk_Central
+    - weight_TrgSF_singleMu_IsoMu24Central
