@@ -1,0 +1,64 @@
+
+[meta]
+results_dir = "/eos/user/a/ayeagle/H_mumu/results/VBFNet_condor/Run3/"
+use_cuda = true
+
+[dataset]
+equalize_for_training = true
+equalize_per_process = false
+renorm_inputs = true
+signal_types = ['VBFHto2Mu', 'EWK']
+abs_train_weight = false
+data_columns = [
+    "pt_mumu",
+    "N_SelectedJets",
+    "leadingjet_pt",
+    "leadingjet_eta",
+    "leadingjet_phi",
+    "leadingjet_btagPNetQvG",
+    "leadingjet_btagPNetCvL",
+    "subleadingjet_pt",
+    "subleadingjet_eta",
+    "subleadingjet_phi",
+    "subleadingjet_btagPNetQvG",
+    "subleadingjet_btagPNetCvL",
+    "thirdjet_pt",
+    "thirdjet_eta",
+    "thirdjet_phi",
+    "thirdjet_btagPNetQvG",
+    "thirdjet_btagPNetCvL",
+    "fourthjet_pt",
+    "fourthjet_eta",
+    "fourthjet_phi",
+    "fourthjet_btagPNetQvG",
+    "fourthjet_btagPNetCvL",
+    "SoftJetCleanedActivity_N",
+    "SoftJetCleanedActivity_ptSum"
+]
+
+[splitting]
+validation_size = 0.32
+k = 4
+
+[network]  
+# Hidden layers only, input layer size pulled from the used columns
+layer_list = [100, 100, 100, 100, 50, 50]
+batch_renorm = true
+dropout = 0.10
+
+[training]
+batch_size = 10000
+epochs = 1
+early_stop = true
+patience = 10
+
+[optimizer]
+algo = "Adam"   # Currently, SGD and Adam are supported
+lr = 0.005
+weight_decay = 0.0
+
+[testing]
+# Number of bins for all histograms
+n_bins = 30
+
+
