@@ -14,7 +14,7 @@ from common.jer_split import define_split_jer_collections
 from common.add_vars import (
     GetAllMuonsObservablesNew, SelectedJetObservablesDef,
     SoftJetCollectionCleaningInVBF, VBFJetMuonsObservablesDef, VBFJetObservablesDef,
-    DefineHistogramSelections, GetSelectionSuffixForSystematic,
+    DefineSelections, GetSelectionSuffixForSystematic,
 )
 from common.apply_custom_weights import apply_custom_weights
 from common.jet_component_splitting import (
@@ -361,7 +361,7 @@ def define_shifted_jet_observables(rdf, systs_to_run):
     return rdf
 
 
-def finalize_histogram_dataframe(
+def apply_selection_and_weights(
     rdf,
     dataset_name,
     selections_cfg,
@@ -377,7 +377,7 @@ def finalize_histogram_dataframe(
     reweight_jsons=None,
 ):
     """Apply selections and final weight corrections exactly once."""
-    rdf = DefineHistogramSelections(
+    rdf = DefineSelections(
         rdf,
         selections_cfg,
         syst_cfg=systematics_cfg,
@@ -472,7 +472,7 @@ def prepare_rdf(
             requested_categories=component_categories,
         )
     weight_columns = sorted({info["weight"] for info in systs_to_run.values() if "weight" in info})
-    rdf = finalize_histogram_dataframe(
+    rdf = apply_selection_and_weights(
         rdf, dataset_name, selections_cfg, systematics_cfg, weight_columns, era,
         want_variations=want_variations,
         apply_jet_component_weight=enable_dy012j,

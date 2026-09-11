@@ -53,3 +53,8 @@ histograms/scripts/
 !tools/tests/test_systematic_correlations.py
 !tools/tests/test_fsr_electron_indices.py
 !tools/tests/test_shared_utilities.py
+
+# Synchronization source documentation/tests and generated local outputs.
+!/sync/README.md
+!tools/tests/test_sync_skim.py
+/skim_v4_sync/

@@ -26,6 +26,8 @@ parser.add_argument("--n-events", default=-1, type=int,
 parser.add_argument("--jet-horn-veto", choices=("configured", "with", "without"),
                     default="configured", help="Override the jet horn veto for this skim only.")
 parser.add_argument("--want-variations", required=False, action="store_true", help="request for variations from command line")
+parser.add_argument("--sync", action="store_true", help="Write a nominal sync skim, event lists and distributions; data sideband only.")
+parser.add_argument("--sync-category", choices=("baseline", "VBF", "ggF"), default="baseline")
 args = parser.parse_args()
 if args.n_events != -1 and args.n_events <= 0:
     parser.error("--n-events must be -1 (all events) or positive")
@@ -46,12 +48,14 @@ systematics_cfg = utilities.get_config(os.path.join(os.environ["ANALYSIS_PATH"],
 xs_cfg = utilities.get_config(config["crossSectionsFile"])
 
 ## some utilities definitions ##
+if args.sync:
+    config["want_variations"] = False
 nano_version = config.get("nano_version", "v15")
 is_data = dataset_cfg.get("is_data", False)
 is_signal = dataset_cfg.get("is_signal", False)
 process = utilities.process_from_dataset(process_cfg, args.dataset_name) if not is_data else None
 
-want_variations = (config.get("want_variations", False) or args.want_variations) and not is_data
+want_variations = (config.get("want_variations", False) or args.want_variations) and not is_data and not args.sync
 
 muon_pt_default_suffix = sel_config.get("muon_pt_default_suffix", "")
 
@@ -167,7 +171,7 @@ df, jet_veto_map_cols = ApplyJetVetoMap(df, config, muon_pt_default_suffix, Fals
 cols_to_save.extend(jet_veto_map_cols)
 # define selected jet vars
 # Final analysis categories, including their shifted versions, are intentionally
-# defined at histogram level by DefineHistogramSelections.  The skim stores only
+# defined at histogram level by DefineSelections.  The skim stores only
 # the nominal/shifted object and selection columns needed to build them.
 
 ## additional col to store ##
@@ -192,9 +196,30 @@ df,vbf_jet_cols = SelectVBFJets(df,want_variations,systematics_cfg)
 cols_to_save.extend(vbf_jet_cols)
 
 
+if args.sync:
+    from common.sync_skim import prepare_sync, export_sync
+    df, sync_cols = prepare_sync(df, sel_config, is_data, args.sync_category)
+    cols_to_save.extend(sync_cols)
+    cols_to_save = list(dict.fromkeys(cols_to_save))
+    snapshot_options = ROOT.RDF.RSnapshotOptions()
+    snapshot_options.fLazy = True
+    sync_snapshot = df.Snapshot("Events", args.output_file, utilities.ListToVector(cols_to_save), snapshot_options)
+    sync_report = df.Report()
+    export_sync(df, sel_config, is_data, args.sync_category, Path(args.output_file).parent, {
+        "era": args.era, "dataset": args.dataset_name, "is_data": is_data,
+        "input_files": input_files, "input_entries": int(input_chain.GetEntries()),
+        "n_events_limit": args.n_events, "nominal_only": True,
+    })
+cols_to_save = list(dict.fromkeys(cols_to_save))
+
 ## snapshot + report store ##
-df.Snapshot("Events",args.output_file,utilities.ListToVector(cols_to_save))
-df, report_json = utilities.SaveReport(df, df.Report().GetValue(), verbose=0)
+if args.sync:
+    sync_snapshot.GetValue()
+    report = sync_report.GetValue()
+else:
+    df.Snapshot("Events",args.output_file,utilities.ListToVector(cols_to_save))
+    report = df.Report().GetValue()
+df, report_json = utilities.SaveReport(df, report, verbose=0)
 if not is_data:
     for pu_key,pu_dict in json_dict_to_store.items():
         for xs_key,xs_dict in pu_dict.items():

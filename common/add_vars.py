@@ -33,7 +33,7 @@ def GetSelectionSuffixForSystematic(syst_name, syst_info=None):
     return f"_{syst_name}"
 
 
-def DefineHistogramSelections(df, sel_config, syst_cfg=None, want_variations=False):
+def DefineSelections(df, sel_config, syst_cfg=None, want_variations=False):
     defined_columns = {str(column) for column in df.GetColumnNames()}
     section_suffix_key = {
         "masses_regions": "tot",

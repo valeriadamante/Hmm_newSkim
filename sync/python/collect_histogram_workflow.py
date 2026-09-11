@@ -33,7 +33,7 @@ def require(path: Path, patterns: list[str]) -> None:
 
 def validate(repo: Path) -> None:
     require(repo / "common/prepare_rdf.py", [
-        r"DefineHistogramSelections\(", r"apply_custom_weights\(",
+        r"DefineSelections\(", r"apply_custom_weights\(",
         r"GetRdfForDataset\(", r"define_shifted_jet_observables\(",
         r"finalize_histogram_dataframe\(",
     ])

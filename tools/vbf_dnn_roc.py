@@ -18,7 +18,7 @@ ANALYSIS_PATH = os.environ.get(
 sys.path.insert(0, ANALYSIS_PATH)
 
 from common.add_vars import (  # noqa: E402
-    DefineHistogramSelections,
+    DefineSelections,
     GetAllMuonsObservablesNew,
     SelectedJetObservablesDef,
     SoftJetCollectionCleaningInVBF,
@@ -26,8 +26,10 @@ from common.add_vars import (  # noqa: E402
     VBFJetObservablesDef,
 )
 from common.dnn_application import ApplyDNN  # noqa: E402
-from common.rdf_utilities import get_root_files  # noqa: E402
-from common.utilities import initialize_root_runtime  # noqa: E402
+from common.utilities import (
+    list_root_files,
+    initialize_root_runtime,
+)
 
 
 # Declare AnalysisTools.h, which provides ComputeCosThetaPhiCS and the other
@@ -74,7 +76,7 @@ def read_scores(paths, era):
     """Read ROOT skim files, select the VBF SR and return DNN scores."""
     files = []
     for path in paths:
-        files.extend(get_root_files(path))
+        files.extend(list_root_files(path))
     files = sorted(set(files))
     if not files:
         raise RuntimeError(f"No ROOT files found in: {', '.join(paths)}")
@@ -95,7 +97,7 @@ def read_scores(paths, era):
         raise RuntimeError(f"Selections file does not exist: {selections_path}")
     with open(selections_path) as stream:
         selections = yaml.safe_load(stream)
-    rdf = DefineHistogramSelections(rdf, selections)
+    rdf = DefineSelections(rdf, selections)
 
     rdf = rdf.Filter(VBF_SIGNAL_REGION, "VBF signal region")
     rdf = ApplyDNN(rdf, payload_names=["DNN"], era=era, model_set="updated")
