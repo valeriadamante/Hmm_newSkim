@@ -651,7 +651,7 @@ DYto2Mu_MLL_105to160_amcatnloFXFX:
   crossSection: DYto2Mu_MLL_105to160_amcatnloFXFX
   crossSectionStitch: DYto2Mu_MLL_105to160_amcatnloFXFX
   generator: amcatnlo
-  additional_cuts: "GenVBFFilter==0"
+  additional_cuts: GenVBFFilter==0
   nanoAOD:
   - /DYto2Mu-2Jets_Bin-MLL-105to160_TuneCP5_13p6TeV_amcatnloFXFX-pythia8/RunIII2024Summer24NanoAODv15-150X_mcRun3_2024_realistic_v2-v2/NANOAODSIM
   - /DYto2Mu-2Jets_Bin-MLL-105to160_TuneCP5_13p6TeV_amcatnloFXFX-pythia8/RunIII2024Summer24NanoAODv15-150X_mcRun3_2024_realistic_v2_ext1-v2/NANOAODSIM
@@ -659,7 +659,7 @@ DYto2Mu_MLL_105to160_amcatnloFXFX_Fil_VBF:
   crossSection: DYto2Mu_MLL_105to160_amcatnloFXFX_VBFFilter
   crossSectionStitch: DYto2Mu_MLL_105to160_amcatnloFXFX_VBFFilter
   generator: amcatnlo
-  additional_cuts: "GenVBFFilter==1"
+  additional_cuts: GenVBFFilter==1
   nanoAOD:
   - /DYto2Mu-2Jets_Bin-MLL-105to160_Fil-VBF_TuneCP5_13p6TeV_amcatnloFXFX-pythia8/RunIII2024Summer24NanoAODv15-150X_mcRun3_2024_realistic_v2-v2/NANOAODSIM
 DYto2E_M_50_0J_amcatnloFXFX:
@@ -930,6 +930,22 @@ DYto2Mu_M_50_amcatnloFXFX_Flashsim:
   nanoAOD:
   - /DYto2Mu-2Jets_Bin-MLL-50_TuneCP5_13p6TeV_amcatnloFXFX-pythia8/fvaselli-SoftActivity_NanoAOD_Test_v1-ace5d3f4ddab40d8fc0f18e7a8dbab44/USER
   instance: prod/phys03
+DYto2Mu_MLL_105to160_amcatnloFXFX_Flashsim_New:
+  crossSection: DYto2Mu_MLL_105to160_amcatnloFXFX
+  crossSectionStitch: DYto2Mu_MLL_105to160_amcatnloFXFX
+  additional_cuts: GenVBFFilter==0
+  nanoAOD:
+  - /DYto2Mu-2Jets_Bin-MLL-105to160_TuneCP5_13p6TeV_amcatnloFXFX-pythia8/fvaselli-flashsim_DYto2Mu-2Jets_Bin-MLL-105to160_RunIII2024Summer24NanoAODv15_Final2_Jul2026-89578c67bc58e175e14cb8efc9d9e047/USER
+  - /DYto2Mu-2Jets_Bin-MLL-105to160_TuneCP5_13p6TeV_amcatnloFXFX-pythia8/fvaselli-flashsim_DYto2Mu-2Jets_Bin-MLL-105to160_RunIII2024Summer24NanoAODv15_Final2_Jul2026-f66803e28e50dd440f77aeadd5129db0/USER
+  - /DYto2Mu-2Jets_Bin-MLL-105to160_TuneCP5_13p6TeV_amcatnloFXFX-pythia8/fvaselli-flashsim_DYto2Mu-2Jets_Bin-MLL-105to160_ext1_RunIII2024Summer24NanoAODv15_Final2_Jul2026-f66803e28e50dd440f77aeadd5129db0/USER
+  instance: prod/phys03
+DYto2Mu_MLL_105to160_amcatnloFXFX_VBFFiltered_Flashsim_New:
+  crossSection: DYto2Mu_MLL_105to160_amcatnloFXFX_VBFFilter
+  crossSectionStitch: DYto2Mu_MLL_105to160_amcatnloFXFX
+  additional_cuts: GenVBFFilter==1
+  nanoAOD:
+  - /DYto2Mu-2Jets_Bin-MLL-105to160_Fil-VBF_TuneCP5_13p6TeV_amcatnloFXFX-pythia8/fvaselli-flashsim_DYto2Mu-2Jets_Bin-MLL-105to160_Fil-VBF_RunIII2024Summer24NanoAODv15-Jul26_REDO3-f66803e28e50dd440f77aeadd5129db0/USER
+  instance: prod/phys03
 EWK_2L2J_madgraph_herwig:
   crossSection: EWK_2L2J_MLL50_MJJ120
   generator: madgraph
@@ -962,6 +978,26 @@ EWK_2Mu2J_MLL_105to160_pythia_Flashsim:
   crossSection: EWK_2Mu2J_MLL105to160_MJJ120
   nanoAOD:
   - /EWK-2Mu2J_Bin-M2Mu-105to160-M2J-120_TuneCP5_13p6TeV_madgraph-pythia8/fvaselli-EWK-2Mu2J_Bin-M2Mu-105to160-M2J-120-RunIII2024Summer24MiniAODv6-150X_mcRun3_2024_realistic_v2-addHT1-c2e672ea58c2aebf452757dd48b38e22/USER
+  instance: prod/phys03
+EWK_2Mu2J_MLL_105to160_herwig_Flashsim_New:
+  crossSection: EWK_2Mu2J_MLL105to160_MJJ120
+  nanoAOD:
+  - /EWK-2Mu2J_Bin-MLL-105to160_TuneCH3_13p6TeV_madgraph-herwig7/fvaselli-flashsim_EWK-2Mu2J_Bin-M2Mu-105to160-M2J-120_madgraph-herwig7-RunIII2024Summer24NanoAODv15-Final2_Jul2026-89578c67bc58e175e14cb8efc9d9e047/USER
+  - /EWK-2Mu2J_Bin-MLL-105to160_TuneCH3_13p6TeV_madgraph-herwig7/fvaselli-flashsim_EWK-2Mu2J_Bin-M2Mu-105to160-M2J-120_madgraph-herwig7-ext1-RunIII2024Summer24NanoAODv15-Final2_Jul2026-f66803e28e50dd440f77aeadd5129db0/USER
+  instance: prod/phys03
+EWK_2Mu2J_MLL_105to160_pythia_Flashsim_New:
+  crossSection: EWK_2Mu2J_MLL105to160_MJJ120
+  nanoAOD:
+  - /EWK-2Mu2J_Bin-M2Mu-105to160-M2J-120_TuneCP5_13p6TeV_madgraph-pythia8/fvaselli-flashsim_EWK-2Mu2J_Bin-M2Mu-105to160-M2J-120_RunIII2024Summer24NanoAODv15_Final2_Jul2026-89578c67bc58e175e14cb8efc9d9e047/USER
+  - /EWK-2Mu2J_Bin-M2Mu-105to160-M2J-120_TuneCP5_13p6TeV_madgraph-pythia8/fvaselli-flashsim_EWK-2Mu2J_Bin-M2Mu-105to160-M2J-120_RunIII2024Summer24NanoAODv15_Final2_Jul2026-f66803e28e50dd440f77aeadd5129db0/USER
+  - /EWK-2Mu2J_Bin-M2Mu-105to160-M2J-120_TuneCP5_13p6TeV_madgraph-pythia8/fvaselli-flashsim_EWK-2Mu2J_Bin-M2Mu-105to160-M2J-120_ext1_RunIII2024Summer24NanoAODv15_Final2_Jul2026-f66803e28e50dd440f77aeadd5129db0/USER
+  instance: prod/phys03
+EWK_2L2J_MLL50_MJJ120_herwig_Flashsim_New:
+  crossSection: EWK_2L2J_MLL50_MJJ120
+  nanoAOD:
+  - /EWK-2L2J_Bin-MLL-50-MJJ-120_TuneCH3_13p6TeV_madgraph-herwig7/fvaselli-flashsim_EWK-2L2J_Bin-MLL-50-MJJ-120_RunIII2024Summer24NanoAODv15_Final2_Jul2026-89578c67bc58e175e14cb8efc9d9e047/USER
+  - /EWK-2L2J_Bin-MLL-50-MJJ-120_TuneCH3_13p6TeV_madgraph-herwig7/fvaselli-flashsim_EWK-2L2J_Bin-MLL-50-MJJ-120_RunIII2024Summer24NanoAODv15_Final2_Jul2026-f66803e28e50dd440f77aeadd5129db0/USER
+  - /EWK-2L2J_Bin-MLL-50-MJJ-120_TuneCH3_13p6TeV_madgraph-herwig7/fvaselli-flashsim_EWK-2L2J_Bin-MLL-50-MJJ-120_ext1_RunIII2024Summer24NanoAODv15_Final2_Jul2026-f66803e28e50dd440f77aeadd5129db0/USER
   instance: prod/phys03
 ggZH_Hto2B_Zto2Q:
   crossSection: ZH_Hbb_Zqq
@@ -1189,6 +1225,11 @@ TT_Flashsim:
   crossSection: TT
   nanoAOD:
   - /TT_TuneCH3_13TeV-powheg-herwig7/fvaselli-flashsim_v9-f5e5c27141f6cbae6ce3c7d60feb1683/USER
+  instance: prod/phys03
+TTto2L2Nu_Flashsim_New:
+  crossSection: TTto2L2Nu
+  nanoAOD:
+  - /TTto2L2Nu_TuneCP5_13p6TeV_powheg-pythia8/fvaselli-flashsim_TTto2L2Nu_TuneCP5_13p6TeV_powheg-pythia8_RunIII2024Summer24NanoAODv15_Final2_Jul2026-89578c67bc58e175e14cb8efc9d9e047/USER
   instance: prod/phys03
 WtoLNu_1J_madgraphMLM:
   crossSection: WtoLNu_1J_madgraphMLM
@@ -1425,53 +1466,3 @@ Zto2Q_HT_2500toInf:
   generator: madgraphMLM
   nanoAOD:
   - /Zto2Q-4Jets_Bin-HT-2500_TuneCP5_13p6TeV_madgraphMLM-pythia8/RunIII2024Summer24NanoAODv15-150X_mcRun3_2024_realistic_v2-v3/NANOAODSIM
-
-
-
-###### flashsim new
-EWK_2Mu2J_MLL_105to160_herwig_Flashsim_New:
-  crossSection: EWK_2Mu2J_MLL105to160_MJJ120
-  nanoAOD:
-  - /EWK-2Mu2J_Bin-MLL-105to160_TuneCH3_13p6TeV_madgraph-herwig7/fvaselli-flashsim_EWK-2Mu2J_Bin-M2Mu-105to160-M2J-120_madgraph-herwig7-RunIII2024Summer24NanoAODv15-Final2_Jul2026-89578c67bc58e175e14cb8efc9d9e047/USER
-  - /EWK-2Mu2J_Bin-MLL-105to160_TuneCH3_13p6TeV_madgraph-herwig7/fvaselli-flashsim_EWK-2Mu2J_Bin-M2Mu-105to160-M2J-120_madgraph-herwig7-ext1-RunIII2024Summer24NanoAODv15-Final2_Jul2026-f66803e28e50dd440f77aeadd5129db0/USER
-  instance: prod/phys03
-
-EWK_2Mu2J_MLL_105to160_pythia_Flashsim_New:
-  crossSection: EWK_2Mu2J_MLL105to160_MJJ120
-  nanoAOD:
-  - /EWK-2Mu2J_Bin-M2Mu-105to160-M2J-120_TuneCP5_13p6TeV_madgraph-pythia8/fvaselli-flashsim_EWK-2Mu2J_Bin-M2Mu-105to160-M2J-120_RunIII2024Summer24NanoAODv15_Final2_Jul2026-89578c67bc58e175e14cb8efc9d9e047/USER
-  - /EWK-2Mu2J_Bin-M2Mu-105to160-M2J-120_TuneCP5_13p6TeV_madgraph-pythia8/fvaselli-flashsim_EWK-2Mu2J_Bin-M2Mu-105to160-M2J-120_ext1_RunIII2024Summer24NanoAODv15_Final2_Jul2026-f66803e28e50dd440f77aeadd5129db0/USER
-  instance: prod/phys03
-
-EWK_2L2J_MLL50_MJJ120_herwig_Flashsim_New:
-  crossSection: EWK_2L2J_MLL50_MJJ120
-  nanoAOD:
-  - /EWK-2L2J_Bin-MLL-50-MJJ-120_TuneCH3_13p6TeV_madgraph-herwig7/fvaselli-flashsim_EWK-2L2J_Bin-MLL-50-MJJ-120_RunIII2024Summer24NanoAODv15_Final2_Jul2026-89578c67bc58e175e14cb8efc9d9e047/USER
-  - /EWK-2L2J_Bin-MLL-50-MJJ-120_TuneCH3_13p6TeV_madgraph-herwig7/fvaselli-flashsim_EWK-2L2J_Bin-MLL-50-MJJ-120_ext1_RunIII2024Summer24NanoAODv15_Final2_Jul2026-f66803e28e50dd440f77aeadd5129db0/USER
-  instance: prod/phys03
-
-DYto2Mu_MLL_105to160_amcatnloFXFX_Flashsim_New:
-  crossSection: DYto2Mu_MLL_105to160_amcatnloFXFX
-  crossSectionStitch: DYto2Mu_MLL_105to160_amcatnloFXFX
-  additional_cuts: "GenVBFFilter==0"
-  nanoAOD:
-  - /DYto2Mu-2Jets_Bin-MLL-105to160_TuneCP5_13p6TeV_amcatnloFXFX-pythia8/fvaselli-flashsim_DYto2Mu-2Jets_Bin-MLL-105to160_RunIII2024Summer24NanoAODv15_Final2_Jul2026-89578c67bc58e175e14cb8efc9d9e047/USER
-  - /DYto2Mu-2Jets_Bin-MLL-105to160_TuneCP5_13p6TeV_amcatnloFXFX-pythia8/fvaselli-flashsim_DYto2Mu-2Jets_Bin-MLL-105to160_ext1_RunIII2024Summer24NanoAODv15_Final2_Jul2026-f66803e28e50dd440f77aeadd5129db0/USER
-  instance: prod/phys03
-
-DYto2Mu_MLL_105to160_amcatnloFXFX_VBFFiltered_Flashsim_New:
-  crossSection: DYto2Mu_MLL_105to160_amcatnloFXFX_VBFFilter
-  crossSectionStitch: DYto2Mu_MLL_105to160_amcatnloFXFX
-  additional_cuts: "GenVBFFilter==1"
-  nanoAOD:
-  - /DYto2Mu-2Jets_Bin-MLL-105to160_Fil-VBF_TuneCP5_13p6TeV_amcatnloFXFX-pythia8/fvaselli-flashsim_DYto2Mu-2Jets_Bin-MLL-105to160_Fil-VBF_RunIII2024Summer24NanoAODv15-Jul26_REDO3-f66803e28e50dd440f77aeadd5129db0/USER
-  instance: prod/phys03
-
-TTto2L2Nu_Flashsim_New:
-  crossSection: TTto2L2Nu
-  nanoAOD:
-  - /TTto2L2Nu_TuneCP5_13p6TeV_powheg-pythia8/fvaselli-flashsim_TTto2L2Nu_TuneCP5_13p6TeV_powheg-pythia8_RunIII2024Summer24NanoAODv15_Final2_Jul2026-89578c67bc58e175e14cb8efc9d9e047/USER
-  instance: prod/phys03
-
-
-#### flashsim oversampled

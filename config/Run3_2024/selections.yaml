@@ -53,6 +53,12 @@ muons_selection:
   muons_OS_presel_trg:
     expression: "muons_OS_and_presel{mu_suff} && muons_trigger{mu_suff}"
     store: True
+  muons_SS:
+    expression: "mu1_charge{mu_suff} * mu2_charge{mu_suff} > 0"
+    store: True
+  muons_SS_presel_trg:
+    expression: "muon_pre_sel_check{mu_suff} && muons_SS{mu_suff} && muons_trigger{mu_suff}"
+    store: True
   mu1_pt_l30:
     expression: "mu1_pt{mu_suff} < 30"
     store: False
@@ -102,6 +108,10 @@ muons_selection:
     expression: "(((mu1_pt_l30{mu_suff} && mu1_TT{mu_suff}) || !(mu1_pt_l30{mu_suff})) && ((mu2_pt_l30{mu_suff} && mu2_TT{mu_suff}) || !(mu2_pt_l30{mu_suff})))"
     store: True
 
+  chi2_sel:
+    expression: "mu1_bsConstrainedChi2{mu_suff} < 30 && mu2_bsConstrainedChi2{mu_suff} < 30"
+    store: True
+
 # =============================================================================
 # JETS SELECTION PIPELINE (Systematics tracking structure)
 # =============================================================================
@@ -120,6 +130,12 @@ categories:
   baseline:
     expression: "base_sel{tot_suff} && mu1_ML{mu_suff} && mu2_ML{mu_suff} && pt_lessthan30_and_TT{mu_suff}"
     store: True
+  base_sel_SS:
+    expression: "muons_SS_presel_trg{mu_suff} && mu_pt_sel{mu_suff} && SelectedJetTagSel{jet_suff}"
+    store: True
+  baseline_SS:
+    expression: "base_sel_SS{tot_suff} && mu1_ML{mu_suff} && mu2_ML{mu_suff} && pt_lessthan30_and_TT{mu_suff}"
+    store: True
 
   # Definizione VBF senza alcuna logica nascosta nel C++
   VBF_def:
@@ -137,6 +153,9 @@ categories:
     store: True
   ggF_1J:
     expression: "ggF{tot_suff} && N_SelectedJets{jet_suff} == 1"
+    store: True
+  ggF_2J:
+    expression: "ggF{tot_suff} && N_SelectedJets{jet_suff} == 2"
     store: True
   ggF_ge2J:
     expression: "ggF{tot_suff} && N_SelectedJets{jet_suff} >= 2"

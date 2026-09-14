@@ -183,21 +183,8 @@ for era in "${eras[@]}"; do
         fi
 
 
-        if [[ "$era" == 2026 ]]; then
-            case "$horn" in
-                without)
-                    label+=_noJetHornVeto
-                    ;;
-            esac
-        else
-            case "$horn" in
-                with)
-                    label+=_withHornVeto
-                    ;;
-                without)
-                    label+=_noHornVeto
-                    ;;
-            esac
+        if [[ "$horn" == without ]]; then
+            label+=_noJetHornVeto
         fi
 
 

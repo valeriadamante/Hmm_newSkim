@@ -106,7 +106,7 @@ run_letters = {
     "2024_Summer24": ["CDEReprocessing", "FGHIPrompt"],
     "2025_Winter25": ["C", "D", "E", "F","G"],
     "2025_Summer24": ["C", "D", "E", "F", "G"],
-    "2026_Summer24": ["B", "C", "D"],
+    "2026_Summer24": ["A", "B", "C", "D"],
 }
 
 _jet_correction_state = {

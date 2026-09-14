@@ -427,6 +427,9 @@ def prepare_rdf(
     ``seg_dict`` must contain the full dataset normalization, also for batches.
     Three independent switches control DY012J, DYptll and DYNJets; nominal
     normalization remains applied when custom weights are disabled.
+    ``reweight_jsons`` is the ``reweight_jsons`` block of the dataset's process
+    entry; leaving it None reads that block back from
+    ``config/<era>/process_names.yaml`` instead of assuming a payload location.
     Splitting returns inclusive plus ggF 0J/1J/>=2J hard/PU and VBF hard/PU
     nodes; data returns inclusive only. Component nodes use central selections;
     the inclusive node also carries shifted category columns for systematics.

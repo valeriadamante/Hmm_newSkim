@@ -152,6 +152,9 @@ categories:
   ggF_1J:
     expression: "ggF{tot_suff} && N_SelectedJets{jet_suff} == 1"
     store: True
+  ggF_2J:
+    expression: "ggF{tot_suff} && N_SelectedJets{jet_suff} == 2"
+    store: True
   ggF_ge2J:
     expression: "ggF{tot_suff} && N_SelectedJets{jet_suff} >= 2"
     store: True

@@ -52,6 +52,12 @@ muons_selection:
   muons_OS_presel_trg:
     expression: "muons_OS_and_presel{mu_suff} && muons_trigger{mu_suff}"
     store: True
+  muons_SS:
+    expression: "mu1_charge{mu_suff} * mu2_charge{mu_suff} > 0"
+    store: True
+  muons_SS_presel_trg:
+    expression: "muon_pre_sel_check{mu_suff} && muons_SS{mu_suff} && muons_trigger{mu_suff}"
+    store: True
   mu1_pt_l30:
     expression: "mu1_pt{mu_suff} < 30"
     store: False
@@ -122,7 +128,13 @@ categories:
     expression: "muons_OS_presel_trg{mu_suff} && mu_pt_sel{mu_suff} && SelectedJetTagSel{jet_suff}"
     store: True
   baseline:
-    expression: "base_sel{tot_suff} && mu1_ML{mu_suff} && mu2_ML{mu_suff}"
+    expression: "base_sel{tot_suff} && mu1_ML{mu_suff} && mu2_ML{mu_suff} && pt_lessthan30_and_TT{mu_suff}"
+    store: True
+  base_sel_SS:
+    expression: "muons_SS_presel_trg{mu_suff} && mu_pt_sel{mu_suff} && SelectedJetTagSel{jet_suff}"
+    store: True
+  baseline_SS:
+    expression: "base_sel_SS{tot_suff} && mu1_ML{mu_suff} && mu2_ML{mu_suff} && pt_lessthan30_and_TT{mu_suff}"
     store: True
   baseline_chi2:
     expression: "baseline{tot_suff} && chi2_sel{mu_suff}"
@@ -150,6 +162,9 @@ categories:
     store: True
   ggF_1J:
     expression: "ggF{tot_suff} && N_SelectedJets{jet_suff} == 1"
+    store: True
+  ggF_2J:
+    expression: "ggF{tot_suff} && N_SelectedJets{jet_suff} == 2"
     store: True
   ggF_ge2J:
     expression: "ggF{tot_suff} && N_SelectedJets{jet_suff} >= 2"

@@ -54,7 +54,7 @@ class Campaign:
     input_root: str = '/eos/cms/store/group/phys_higgs/cmshmm/vdamante/skim_v3'
     manifests: str = '/eos/user/v/vdamante/H_mumu/manifests_skim_v3'
     cpus: str = '4'
-    memory: str = '20GB'
+    memory: str = '8GB'
     batch: str = '1'
     json_root: str = ''
     bundled_families: tuple[str, ...] = ()
@@ -90,7 +90,7 @@ def load_campaign(name):
     return Campaign(values['CAMPAIGN_LABEL'], Path(values['CAMPAIGN_ROOT']), values['ERAS'],
                     [x for x in values['SYSTEMATICS'] if x != 'Central'], values['DATASETS'], hist,
                     option('--mass-regions'), option('--categories'), option('--variables'), source,
-                    cpus=values['REQUEST_CPUS'] or '4', memory=values['REQUEST_MEMORY'] or '20GB',
+                    cpus=values['REQUEST_CPUS'] or '4', memory=values['REQUEST_MEMORY'] or '8GB',
                     batch=values['VARIABLE_BATCH_SIZE'] or '8',
                     input_root=values['ROOT_INPUT'] or Campaign.__dataclass_fields__['input_root'].default,
                     json_root=values['JSON_INPUT'], chunk_size=values['CHUNK_SIZE'] or '1',
@@ -118,6 +118,14 @@ def datasets(era, groups):
             if group == 'DY_amcatnlo_105_160' and 'DYto2Mu_MLL_105to160_amcatnloFXFX_VBFFiltered' in samples:
                 selected = [x for x in selected if x != 'DYto2Mu_MLL_105to160_amcatnloFXFX_Fil_VBF']
                 selected.append('DYto2Mu_MLL_105to160_amcatnloFXFX_VBFFiltered')
+    # The 2026 skim intentionally contains a reduced process set.  Restrict
+    # histogram expectations to datasets actually selected by that skim.
+    if era_name(era) == 'Run3_2026':
+        skim = config(era, 'skim_cfg')
+        available = {dataset for process in skim.get('process_to_select', [])
+                     for dataset in members(processes[process])}
+        available -= set(skim.get('datasets_exclude', []))
+        selected = [dataset for dataset in selected if dataset in available]
     if not selected: raise RuntimeError(f'Empty dataset selection: {era} {groups}')
     return sorted(set(selected))
 
@@ -149,7 +157,8 @@ def raw_products(c, era, family):
         if process.endswith('_nonStitched') and dataset in members(processes.get(process.removesuffix('_nonStitched'), {})):
             process = process.removesuffix('_nonStitched')
         entry = processes.get(process, {})
-        split = entry.get('split_jet_components', jet_components_enabled_for_dataset(['DY', 'EWK'], dataset, process, is_signal=entry.get('is_signal', False)))
+        split = ('--all-mc-jet-components' in c.hist_args or
+                 entry.get('split_jet_components', jet_components_enabled_for_dataset(['DY', 'EWK'], dataset, process, is_signal=entry.get('is_signal', False))))
         if process.startswith('Data') or not split: continue
         labels = {label for component, label in DY_COMPONENT_FILE_LABELS.items()
                   if (component.startswith('ggF_') and 'ggF' in c.categories) or (component.startswith('VBF_') and 'VBF' in c.categories)}
@@ -368,8 +377,10 @@ class Workflow:
                        '--era',era,'--datasets',groups,'--output-dir',self.c.directory(family),
                        '--manifest-input-folder',self.c.manifests,'--root-input-folder',self.c.input_root,
                        '--json-input-folder',self.c.json_root or self.c.input_root,'--systematics',(','.join(physical_family(f, era) for f in self.c.bundled_families) if family == 'all' and self.c.bundled_families else physical_family(family, era)),'--chunk-size',self.c.chunk_size,
-                       '--missing-only','--request-cpus',self.c.cpus,'--request-memory',self.c.memory]
-                if not local: cmd += ['--condor','--condor-label',self.c.name+'_'+family]
+                       '--missing-only']
+                if not local:
+                    cmd += ['--request-cpus',self.c.cpus,'--request-memory',self.c.memory,
+                            '--condor','--condor-label',self.c.name+'_'+family]
                 if self.args.force: cmd += ['--force']
                 producer_args = ['--',*c.hist_args,'--rdf-threads',self.c.cpus,'--variable-batch-size',self.c.batch]
                 repairs = []
@@ -575,12 +586,17 @@ def input_overrides(c, args, no_horn=False):
     if getattr(args, 'threads', None) is not None:
         if args.threads < 1: raise ValueError('--threads must be positive')
         c.cpus = str(args.threads)
+    if getattr(args, 'memory', None): c.memory = args.memory
     suffix = '_noJetHornVeto' if no_horn else ''
-    if args.input_root: c.input_root = args.input_root.rstrip('/') + suffix
+    if args.input_root:
+        c.input_root = args.input_root.rstrip('/') + suffix
+        if not args.json_root: c.json_root = c.input_root
     if args.manifest_root: c.manifests = args.manifest_root.rstrip('/') + suffix
     if args.json_root: c.json_root = args.json_root.rstrip('/') + suffix
     if no_horn:
-        if args.no_horn_input_root: c.input_root = args.no_horn_input_root
+        if args.no_horn_input_root:
+            c.input_root = args.no_horn_input_root
+            if not args.no_horn_json_root and not args.json_root: c.json_root = c.input_root
         if args.no_horn_manifest_root: c.manifests = args.no_horn_manifest_root
         if args.no_horn_json_root: c.json_root = args.no_horn_json_root
     return c
@@ -651,7 +667,7 @@ def horn(args):
                           '--output',Path(args.plot_output or 'plots/campaigns')/base.name/comparison,'--rebin'])
 
 
-WEIGHT_STAGES = [('jet', 'dy012j_aug31','jet_component'), ('ptll','dy_ptll_aug31','ptll_njets'), ('njets','dy_njets_aug31','njets')]
+WEIGHT_STAGES = [('jet', 'dy012j_skim_v4','jet_component'), ('ptll','dy_ptll_skim_v4','ptll_njets'), ('njets','dy_njets_skim_v4','njets')]
 
 
 def weight_workflow(stage, args):
@@ -755,6 +771,7 @@ def parser(kind):
     p.add_argument('--config', help='Shell campaign configuration')
     p.add_argument('--variables', help='Comma-separated histogram variables')
     p.add_argument('--threads', type=int, help='ROOT threads per job and matching Condor CPU request')
+    p.add_argument('--memory', help='HTCondor memory request, e.g. 8GB')
     p.add_argument('--dy-weights', help='Custom weights: jet-component,ptll,njets (empty disables all three)')
     p.add_argument('--datasets', help='Comma-separated sample groups')
     p.add_argument('--systematics-layout', choices=['split', 'together'], default='split')

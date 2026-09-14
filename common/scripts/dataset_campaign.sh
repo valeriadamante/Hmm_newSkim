@@ -565,12 +565,16 @@ add_data_jobs() {
       )
       ;;
     Run3_2026)
-      datasets=(
-        Muon0_Run2026B_v1 Muon0_Run2026C_v1 Muon0_Run2026D_v1
-        Muon1_Run2026B_v1 Muon1_Run2026C_v1 Muon1_Run2026D_v1
-        Muon2_Run2026B_v1 Muon2_Run2026C_v1 Muon2_Run2026D_v1
-        Muon3_Run2026B_v1 Muon3_Run2026C_v1 Muon3_Run2026D_v1
-      )
+      local selected_data
+      selected_data="$(python3 - "${era}" <<'PY_DATA'
+import sys
+from common.utilities import resolve_dataset_selection
+
+selection = resolve_dataset_selection(".", sys.argv[1])
+print("\n".join(selection["process_datasets"].get("Data_Muon", [])))
+PY_DATA
+)" || die "Could not resolve Data_Muon datasets from skim_cfg for ${era}"
+      mapfile -t datasets <<< "${selected_data}"
       ;;
   esac
 

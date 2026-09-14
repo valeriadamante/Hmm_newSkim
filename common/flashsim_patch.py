@@ -58,6 +58,8 @@ FLASHSIM_OPTIONAL_MUON_COLUMNS = (
 def patch_flashsim_redefine_cols(df,dataset_name,is_data=False):
     if not is_flashsim_sample(dataset_name, is_data):
         return df
+    if "Electron_mvaIso_WP90" in df.GetColumnNames():
+        return df
     df = df.Define("Electron_mvaIso_WP90", "Electron_mvaIso")
     return df
 def patch_flashsim_muon_columns(df, columns, dataset_name, is_data=False):
@@ -68,6 +70,9 @@ def patch_flashsim_muon_columns(df, columns, dataset_name, is_data=False):
         column for column in columns
         if column in FLASHSIM_OPTIONAL_MUON_COLUMNS and not df.HasColumn(column)
     }
+    for col in missing:
+        if col in df.GetColumnNames():
+            missing.remove(col)
     if missing:
         print("[PATCH Flashsim] Omitting missing muon columns: " + ", ".join(sorted(missing)))
     return [column for column in columns if column not in missing]

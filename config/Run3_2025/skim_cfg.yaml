@@ -10,8 +10,6 @@ use_ext: true     # if true, use all nanoAOD paths in each list; otherwise only 
 
 output_dir: /eos/cms/store/group/phys_higgs/cmshmm/vdamante/skim_v4/
 output_dir_noJetHornVeto: /eos/cms/store/group/phys_higgs/cmshmm/vdamante/skim_v4_noJetHornVeto/
-histogram_output_dir: /eos/user/v/vdamante/H_mumu/Hists_DNN_erabased
-histogram_systematics_output_dir: /eos/user/v/vdamante/H_mumu/Hists_DNN_erabased_systematics
 
 # ---------------------------------------------------------
 # condor configuration

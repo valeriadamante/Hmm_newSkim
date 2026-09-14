@@ -1844,6 +1844,10 @@ def make_stacked_plot(
         "Signal_Fit_VBF": "VBF H",
         "Signal_Fit_baseline": "baseline H",
 
+        "Signal_ext_ggF": "ggF H ext",
+        "Signal_ext_VBF": "VBF H ext",
+        "Signal_ext_baseline": "baseline H ext",
+
         "mass_inclusive_baseline_lowPtTT": "baseline incl",
         "mass_inclusive_ggF_lowPtTT": "ggF incl",
         "mass_inclusive_VBF_lowPtTT": "VBF incl",
@@ -1876,7 +1880,6 @@ def make_stacked_plot(
     }
 
     lumi_val = config_page.get("lumi_text", {}).get("text", "1.0")
-    cms_tag = f"Preliminary {category_names[category]}"
     category_label = category_names.get(category, category.replace("/incl", ""))
     cms_tag = f"Preliminary {category_label}" # config_page.get("cms_label", {}).get("tag",
     cms_com = config_page.get("cms_label", {}).get("com", "13.6")

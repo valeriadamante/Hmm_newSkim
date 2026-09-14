@@ -3,6 +3,8 @@ import math
 import os
 from pathlib import Path
 
+import yaml
+
 CORRECTION_NAMES = {
     "dy_ptll_njets_reweight": "dy_ptll_reweight",
     "dy_njets_reweight": "dy_njets_reweight",
@@ -12,30 +14,92 @@ CORRECTION_NAMES = {
 DY_AMCATNLO_NORMALIZATION = 0.9393839712918659
 REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
 
+# Keys of the ``reweight_jsons`` block of a process entry in process_names.yaml.
+DY_REWEIGHT_KEYS = ("ptll_njets", "njets", "jet_component")
+# Process entry used when the dataset does not declare its own payloads.
+DY_REWEIGHT_FALLBACK_PROCESS = "DY"
 
-def reweight_json_paths(era, configured_paths=None, required=None):
-    """Return configured histogram reweight payloads for one physical era."""
+
+def _process_entry_for_dataset(process_cfg, dataset_name):
+    """Return (process, entry) of the process_names.yaml entry owning a dataset."""
+    if not dataset_name:
+        return None, None
+    for process, entry in process_cfg.items():
+        if not isinstance(entry, dict):
+            continue
+        datasets = list(entry.get("datasets") or [])
+        datasets.extend(entry.get("sub_processes") or [])
+        if dataset_name in datasets:
+            return process, entry
+    return None, None
+
+
+def configured_reweight_jsons(era, dataset_name=None):
+    """Read the DY reweight payloads declared in config/<era>/process_names.yaml.
+
+    Returns ``(reweight_jsons, process, config_path)``.  The entry owning
+    ``dataset_name`` wins; otherwise the inclusive ``DY`` entry is used, which is
+    the one every era aliases its other DY processes to.
+    """
+    config_path = REPOSITORY_ROOT / "config" / str(era) / "process_names.yaml"
+    if not config_path.is_file():
+        raise FileNotFoundError(
+            f"Cannot resolve the DY reweight JSONs for era {era}: "
+            f"missing {config_path}"
+        )
+    process_cfg = yaml.safe_load(config_path.read_text()) or {}
+    process, entry = _process_entry_for_dataset(process_cfg, dataset_name)
+    if not isinstance(entry, dict) or "reweight_jsons" not in entry:
+        process = DY_REWEIGHT_FALLBACK_PROCESS
+        entry = process_cfg.get(process) or {}
+    return dict(entry.get("reweight_jsons") or {}), process, config_path
+
+
+def reweight_json_paths(era, configured_paths=None, required=None, dataset_name=None):
+    """Return the histogram reweight payloads configured for one physical era.
+
+    ``configured_paths`` is the ``reweight_jsons`` block of a process entry in
+    ``config/<era>/process_names.yaml``.  When it is None the block is read back
+    from that file: there is no hard-coded payload location, so a caller that
+    forgets to forward the process configuration gets the configured payloads
+    rather than a silently different set.  Payload locations therefore only ever
+    change by editing the era configuration.
+    """
     era_name = str(era)
-    paths = {
-        "ptll_njets": REPOSITORY_ROOT / "reweights" / "dy_ptll_reweight"
-        / era_name / "dy_ptll_reweight_smart.json",
-        "njets": REPOSITORY_ROOT / "reweights" / "dy_njets_reweight"
-        / era_name / "dy_njets_reweight.json",
-        "jet_component": REPOSITORY_ROOT / "reweights" / "dy_012j_reweight"
-        / era_name / "dy_012j_reweight.json",
-    }
+    if configured_paths is None:
+        configured_paths, process, config_path = configured_reweight_jsons(
+            era_name, dataset_name
+        )
+        source = f"{config_path}, process {process}"
+        print(
+            f"[INFO] DY reweight JSONs for era {era_name} resolved from {source}"
+        )
+    else:
+        source = f"the caller (config/{era_name}/process_names.yaml)"
+
+    paths = {}
     for name, configured_path in (configured_paths or {}).items():
-        if name not in paths:
+        if name not in DY_REWEIGHT_KEYS:
             raise KeyError(f"Unknown DY reweight JSON key: {name}")
         path = Path(configured_path)
         paths[name] = path if path.is_absolute() else REPOSITORY_ROOT / path
 
-    required = set(paths) if required is None else set(required)
-    missing = [str(paths[name]) for name in required if not paths[name].is_file()]
+    required = set(DY_REWEIGHT_KEYS) if required is None else set(required)
+    unknown = sorted(required - set(DY_REWEIGHT_KEYS))
+    if unknown:
+        raise KeyError(f"Unknown DY reweight JSON key: {', '.join(unknown)}")
+    unconfigured = sorted(required - set(paths))
+    if unconfigured:
+        raise KeyError(
+            f"No DY reweight JSON configured for era {era_name}: "
+            + ", ".join(unconfigured)
+            + f" (expected under reweight_jsons in {source})"
+        )
+    missing = [str(paths[name]) for name in sorted(required) if not paths[name].is_file()]
     if missing:
         raise FileNotFoundError(
-            f"Missing histogram reweight JSON for era {era_name}: "
-            + ", ".join(missing)
+            f"Missing histogram reweight JSON for era {era_name} "
+            f"(configured in {source}): " + ", ".join(missing)
         )
     return paths
 
@@ -511,7 +575,7 @@ def apply_custom_weights(
         required.append("njets")
     if apply_jet_component:
         required.append("jet_component")
-    paths = reweight_json_paths(era, reweight_jsons, required)
+    paths = reweight_json_paths(era, reweight_jsons, required, dataset_name=dataset_name)
     if apply_dy_ptll:
         df = ApplyDYPtLLReweight(
             df, dataset_name, paths["ptll_njets"], weight_columns

@@ -15,9 +15,9 @@ DY:
     VBF PU1: steelblue
     VBF PU2: midnightblue
   reweight_jsons: &dy_reweight_jsons
-    ptll_njets: reweights/dy_ptll_reweight_Aug31/Run3_2026/dy_ptll_reweight_smart.json
-    njets: reweights/dy_njets_reweight_Aug31/Run3_2026/dy_njets_reweight.json
-    jet_component: reweights/dy_012j_reweight_Aug31/Run3_2026/dy_012j_reweight.json
+    ptll_njets: reweights/dy_ptll_reweight_skim_v4/Run3_2026/dy_ptll_reweight_smart.json
+    njets: reweights/dy_njets_reweight_skim_v4/Run3_2026/dy_njets_reweight.json
+    jet_component: reweights/dy_012j_reweight_skim_v4/Run3_2026/dy_012j_reweight.json
   datasets:
     - DYto2E_M_50_amcatnloFXFX
     - DYto2Mu_M_50_amcatnloFXFX

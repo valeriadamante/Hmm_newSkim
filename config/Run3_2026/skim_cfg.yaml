@@ -37,30 +37,30 @@ process_to_select:
   - Data_Muon
   - DY
   - DYto2Mu_MLL105To160
-  # - DYto2Mu_MLL105To160_FlashSim
-  # - DYto2Mu_minnlo
-  # - TT
-  # - W
+  - DYto2Mu_MLL105To160_FlashSim
+  - DYto2Mu_minnlo
+  - TT
+  - W
   - EWK
-  # - EWK_Flashsim
+  - EWK_Flashsim
   - EWK_2Mu2J_MLL_105to160_herwig
-  # - EWK_2Mu2J_MLL_105to160_herwig_Flashsim
+  - EWK_2Mu2J_MLL_105to160_herwig_Flashsim
   - EWK_2Mu2J_MLL_105to160_pythia
-  # - EWK_2Mu2J_MLL_105to160_pythia_Flashsim
-  # - SingleH
+  - EWK_2Mu2J_MLL_105to160_pythia_Flashsim
+  - SingleH
   - VV
-  # - VH_inclusive
-  # - VVV
-  # - ST
-  # - TW
-  # - TTX
-  # - TTto2L2Nu_Flashsim
+  - VH_inclusive
+  - VVV
+  - ST
+  - TW
+  - TTX
+  - TTto2L2Nu_Flashsim
   - VBFHto2Mu_M125_amcatnlo
-  # - VBFHto2Mu_m125_Flashsim
+  - VBFHto2Mu_m125_Flashsim
   - VBFHto2Mu_M125_powheg
   - GluGluHto2Mu
   - GluGluHto2Mu_amcatnlo
-  # - TTH_inclusive
+  - TTH_inclusive
 
 
 proxy_location: /afs/cern.ch/work/v/vdamante/Hmm_newSkim/data/voms.proxy

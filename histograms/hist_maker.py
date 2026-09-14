@@ -1057,6 +1057,10 @@ def main(argv=None, *, stage_settings=None):
         help="Processes eligible for jet-component splitting.",
     )
     parser.add_argument(
+        "--all-mc-jet-components", action="store_true",
+        help="Split every MC process by reco multiplicity and gen matching.",
+    )
+    parser.add_argument(
         "--vbf-eta-regions",
         "--eta-components",
         action="store_true",
@@ -1217,10 +1221,12 @@ def main(argv=None, *, stage_settings=None):
     if args.dy_jet_components:
         if is_data:
             print(
-                f"[INFO] Dataset {args.dataset_name} is data: producing normal "
-                "histograms without jet/gen component splitting."
+                f"[INFO] Dataset {args.dataset_name} is data: producing "
+                "reconstructed-jet categories without generator matching."
             )
             args.dy_jet_components = False
+        elif args.all_mc_jet_components:
+            print(f"[INFO] Splitting MC dataset {args.dataset_name} into jet components.")
         elif "split_jet_components" in process_entry:
             args.dy_jet_components = bool(process_entry["split_jet_components"])
             print(
@@ -1254,7 +1260,7 @@ def main(argv=None, *, stage_settings=None):
         )
         requested_variables = list(args.variables if args.variables is not None else main_cfg["variables"])
         args.vbf_component_variables = requested_variables.copy()
-        vars_to_add = ["eta_vs_pt_leadingjet", "eta_vs_pt_subleadingjet"]
+        vars_to_add = ["eta_signed_vs_pt_leadingjet", "eta_signed_vs_pt_subleadingjet"]
         args.variables = list(dict.fromkeys([*requested_variables, *vars_to_add]))
     else:
         args.vbf_component_variables = []

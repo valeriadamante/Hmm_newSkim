@@ -7,11 +7,11 @@ from copy import deepcopy
 
 GGF_COMPONENT_VARIABLES = {
     "ggF_0J_Hard": "m_mumu",
-    "ggF_1J_Hard": "eta_vs_pt_leadingjet",
-    "ggF_1J_PU": "eta_vs_pt_leadingjet",
-    "ggF_2J_Hard": "eta_vs_pt_subleadingjet",
-    "ggF_2J_PU1": "eta_vs_pt_subleadingjet",
-    "ggF_2J_PU2": "eta_vs_pt_subleadingjet",
+    "ggF_1J_Hard": "eta_signed_vs_pt_leadingjet",
+    "ggF_1J_PU": "eta_signed_vs_pt_leadingjet",
+    "ggF_2J_Hard": "eta_signed_vs_pt_subleadingjet",
+    "ggF_2J_PU1": "eta_signed_vs_pt_subleadingjet",
+    "ggF_2J_PU2": "eta_signed_vs_pt_subleadingjet",
 }
 
 VBF_COMPONENTS = ("VBF_Hard", "VBF_PU1", "VBF_PU2")
