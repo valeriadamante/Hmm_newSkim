@@ -65,3 +65,7 @@ htcondor/skim_v4_noJetHornVeto/
 
 # Campaign definitions are configuration: keep them in git despite the *.sh rule.
 !config/campaigns/*.sh
+
+# DY reweight payloads: small JSONs that config/<era>/process_names.yaml points
+# at, so a clean clone can actually apply the weights.
+!reweights/dy_*_reweight_skim_v4/**/*.json

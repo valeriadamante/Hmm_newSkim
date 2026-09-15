@@ -1,0 +1,153 @@
+{
+  "corrections": [
+    {
+      "data": {
+        "content": [
+          {
+            "key": 0,
+            "value": {
+              "content": [
+                {
+                  "expression": "[0] + [1]*exp(-0.5*((x-[2])/[3])^2) + [4]*exp(-0.5*((x-[5])/[6])^2) + [7]*pow(max(x,[8])/[8],-[9])",
+                  "nodetype": "formula",
+                  "parameters": [
+                    2.821304221450076,
+                    0.2420660669840267,
+                    17.3433707168337,
+                    6.524071579212173,
+                    524.7930860966859,
+                    342.8049161562983,
+                    3.9095837556560498,
+                    -1.9405565460931056,
+                    21.489504304245976,
+                    0.1706845492181498
+                  ],
+                  "parser": "TFormula",
+                  "variables": [
+                    "ptll"
+                  ]
+                },
+                {
+                  "expression": "[0] + [1]*exp(-0.5*((x-[2])/[3])^2) + [4]*exp(-0.5*((x-[5])/[6])^2) + [7]*pow(max(x,[8])/[8],-[9])",
+                  "nodetype": "formula",
+                  "parameters": [
+                    -5.677360886809123,
+                    14.679713948297305,
+                    -42.07657636025653,
+                    3.633927204549484,
+                    6.744095057575384,
+                    109.44526890178008,
+                    299.69233110280186,
+                    0.4068949533904294,
+                    16.189139556391385,
+                    2.092743069149581
+                  ],
+                  "parser": "TFormula",
+                  "variables": [
+                    "ptll"
+                  ]
+                },
+                {
+                  "expression": "[0] + [1]*exp(-0.5*((x-[2])/[3])^2) + [4]*exp(-0.5*((x-[5])/[6])^2) + [7]*pow(max(x,[8])/[8],-[9])",
+                  "nodetype": "formula",
+                  "parameters": [
+                    -0.684090299685439,
+                    6.811247739219041,
+                    -8.592408752705053,
+                    3.5711392464240514,
+                    1.6862338547115197,
+                    130.94315618538218,
+                    289.3866856259266,
+                    0.3091483818691664,
+                    13.917217050768354,
+                    1.8023140814867737
+                  ],
+                  "parser": "TFormula",
+                  "variables": [
+                    "ptll"
+                  ]
+                }
+              ],
+              "edges": [
+                -0.5,
+                0.5,
+                1.5,
+                999.5
+              ],
+              "flow": "clamp",
+              "input": "N_selectedJets",
+              "nodetype": "binning"
+            }
+          },
+          {
+            "key": 1,
+            "value": {
+              "content": [
+                1.0,
+                1.0,
+                {
+                  "expression": "[0] + [1]*exp(-0.5*((x-[2])/[3])^2) + [4]*exp(-0.5*((x-[5])/[6])^2) + [7]*pow(max(x,[8])/[8],-[9])",
+                  "nodetype": "formula",
+                  "parameters": [
+                    0.719717461671135,
+                    0.8223114604146834,
+                    -16.639031548786917,
+                    21.268239105867217,
+                    0.3956887892157514,
+                    104.54057735798294,
+                    154.45750614374828,
+                    -0.6926096895891263,
+                    5.18164309847729,
+                    0.791059828521812
+                  ],
+                  "parser": "TFormula",
+                  "variables": [
+                    "ptll"
+                  ]
+                }
+              ],
+              "edges": [
+                -0.5,
+                0.5,
+                1.5,
+                999.5
+              ],
+              "flow": "clamp",
+              "input": "N_selectedJets",
+              "nodetype": "binning"
+            }
+          }
+        ],
+        "default": 1.0,
+        "input": "isVBF",
+        "nodetype": "category"
+      },
+      "description": "DY pt(ll) reweighting from (Data - nonDY) / DY.",
+      "inputs": [
+        {
+          "description": "VBF category flag: 1 for VBF, 0 for ggF.",
+          "name": "isVBF",
+          "type": "int"
+        },
+        {
+          "description": "Number of selected jets.",
+          "name": "N_selectedJets",
+          "type": "real"
+        },
+        {
+          "description": "Dilepton transverse momentum.",
+          "name": "ptll",
+          "type": "real"
+        }
+      ],
+      "name": "dy_ptll_reweight",
+      "output": {
+        "description": "DY pt(ll) event weight.",
+        "name": "weight",
+        "type": "real"
+      },
+      "version": 1
+    }
+  ],
+  "schema_version": 2
+}
