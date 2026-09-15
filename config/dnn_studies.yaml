@@ -1,0 +1,69 @@
+# Composizione dei processi per gli studi sul DNN output.
+#
+# Unica sorgente di verita' per binning-opt, confronto di performance e scan di
+# sensitivita'. I nomi sono nomi di *processo* (chiavi di process_names.yaml,
+# ossia i nomi dei file in Central_hadded/<era>/), non nomi di dataset.
+#
+# I pattern sono glob esatti: "TT" non seleziona "TT_2J_Hard". Questo e'
+# intenzionale, perche' i file di componente jet (_0J_*, _1J_*, _2J_*) sono
+# sottoinsiemi del processo padre e sommarli raddoppierebbe il fondo.
+#
+# Escluso di proposito dal fondo:
+#   DY, EWK                            -> inclusivi, fuori regione 105-160
+#   EWK_2Mu2J_..._pythia               -> generatore alternativo di herwig
+#   DYto2Mu_minnlo                     -> generatore alternativo
+#   *_Flashsim*, *_FlashSim*           -> simulazione veloce, non nominale
+#   *Hto2Mu*                           -> segnale, incluse le varianti di massa
+#   *_0J_*, *_1J_*, *_2J_*             -> componenti gia' contenute nel padre
+
+object:
+  region: Signal_Fit_VBF
+  variable: DNN_NNOutput
+
+signal:
+  # Set nominale usato per binning-opt e performance.
+  powheg:
+    - GluGluHto2Mu
+    - VBFHto2Mu_M125_powheg
+  # Set alternativo, usato dallo scan di sensitivita' storico.
+  amcatnlo:
+    - GluGluHto2Mu_amcatnlo
+    - VBFHto2Mu_M125_amcatnlo
+
+# Fondo comune a tutte le ere. I processi assenti in un'era (VH_inclusive e
+# TTH_inclusive in Run3_2023BPix, W in 2022-2023, W_NJets in 2024-2026) non
+# vengono trovati e semplicemente non contribuiscono.
+background:
+  - DYto2Mu_MLL105To160
+  - EWK_2Mu2J_MLL_105to160_herwig
+  - TT
+  - TW
+  - ST
+  - TTX
+  - VV
+  - VVV
+  - W
+  - W_NJets
+  - SingleH
+  - VH_inclusive
+  - TTH_inclusive
+
+# Esclusioni passate a compare_dnn_performance.py, che accetta --exclude-pattern.
+exclude:
+  - "*Hto2Mu*"
+  - "*Flashsim*"
+  - "*FlashSim*"
+  - "DY"
+  - "EWK"
+  - "DYto2Mu_minnlo"
+  - "EWK_2Mu2J_MLL_105to160_pythia"
+  - "*_0J_*"
+  - "*_1J_*"
+  - "*_2J_*"
+
+# Vincoli di default per l'ottimizzazione del binning.
+binning:
+  max_bins: 5
+  min_background: 10.0
+  max_relative_background_stat: 0.5
+  relative_background_systematic: 0.0
