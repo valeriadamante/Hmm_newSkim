@@ -48,12 +48,30 @@ Each run writes:
 - `manifest.json`, `configuration/` and `production.log`: input dataset,
   command, source/configuration hashes, configuration copies and correction log.
 
+Besides the objects, the export also carries the dimuon variables and the
+high-level ggH/VBF training inputs (`pt_mumu`, `eta_mumu`, `phi_mumu`, `y_mumu`,
+`dR_mumu`, `cosTheta_CS`, `phi_CS`, `R_pt`, `minDeltaEtaSigned`, `minDeltaPhi`,
+`Zeppenfeld_Var`, `pt_centrality`, `m_jj`, `m_jj_ls`, `delta_eta_jj`,
+`delta_eta_jj_ls`, `pt_vbfj1j2`, `era_code` and the soft-activity counts), so a
+disagreement can be traced to the DNN inputs and not only to the objects.
+
 Muon details include raw/noCorr and corrected + FSR pT, charge, ID/isolation,
 trigger matching and gen matching. Jet details include all jets and the indices
 of selected jets, correction input pT, true raw pT, corrected pT, eta/phi,
 horn/veto-map/selection flags. `Jet_pt_nocorr` is the NanoAOD pT before our
 reapplication of JEC; true raw pT is explicitly stored as
 `Sync_Jet_pt_raw = Jet_pt_nocorr * (1 - Jet_rawFactor)`.
+
+Write the event list in the column order agreed with the other analysis:
+
+```bash
+python3 sync/python/export_event_list.py ours/H_sideband_events.jsonl \
+  --output ours/H_sideband_event_list.txt
+```
+
+`--precision N` sets the number of decimals, `--missing STR` the placeholder for
+absent values, `--extra` adds the supplementary columns, `--mc-weights` the MC
+weights, and `--no-header` drops the header line.
 
 Compare the event lists before comparing distributions:
 

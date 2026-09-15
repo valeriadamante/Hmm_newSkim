@@ -12,6 +12,23 @@ This section collects the analysis synchronization documents.
 - [2025 datasets](datasets_2025.pdf)
 - [2026 datasets](datasets_2026.pdf)
 
+## Running the synchronization
+
+`sync/README.md` documents the procedure: one exact NanoAOD input file per run
+through the current skim and nominal selection, then the event-list comparison.
+In short:
+
+```bash
+python3 sync/python/run_sync_skim.py --run          # produce our side
+python3 sync/python/export_event_list.py ours/H_sideband_events.jsonl \
+  --output ours/H_sideband_event_list.txt           # agreed column order
+python3 sync/python/compare_sync_events.py \
+  ours/H_sideband_event_ids.txt theirs/H_sideband_event_ids.txt \
+  --output comparison.json                          # exit 0 only if identical
+```
+
+Agree on the exact input file with the other analysis before comparing counts.
+
 ## Corrections
 
 Correction payloads, paths, tags, and keys used by the analysis.

@@ -455,6 +455,61 @@ htcondor/error/<ERA>/<DATASET>/
 htcondor/log/<ERA>/<DATASET>/
 ```
 
+### skim_v4 productions
+
+`htcondor/condorsubmit.py` above is the skim_v3 entry point. skim_v4 is driven by
+`campaigns/run3_skim_v4.sh`, which resolves the missing chunks per era and
+variant before queueing anything:
+
+```bash
+bash campaigns/run3_skim_v4.sh plan      # print the commands only
+bash campaigns/run3_skim_v4.sh dry-run   # resolve the missing chunks
+bash campaigns/run3_skim_v4.sh submit --era Run3_2024
+```
+
+Default output base is
+`/eos/cms/store/group/phys_higgs/cmshmm/vdamante/skim_v4`; 2025 and 2026 also
+produce the `noHornVeto`/`noJetHornVeto` variants. Condor logs and the per-era
+bookkeeping (`skim_chunks.json`, `completed_files.txt`, `failed_jobs_report.txt`,
+`missing_files_dryrun.txt`) land under `htcondor/skim_v4*/` and are not tracked.
+
+### Validating a skim production
+
+The existence check used by the submitter is not sufficient: a job killed after
+the `Snapshot` leaves a full `.root` with no `report_*.json`, and a truncated
+file still opens but holds fewer events than its report declares.
+`tools/validate_skim.py` catches both:
+
+```bash
+python3 tools/validate_skim.py \
+  --era Run3_2024 \
+  --input /eos/cms/store/group/phys_higgs/cmshmm/vdamante/skim_v4 \
+  --state-dir htcondor/skim_v4 \
+  --output validation_2024.json \
+  --jobs 16
+```
+
+Restrict it with `--datasets NAME [NAME ...]` while iterating.
+
+### Patching a production you cannot overwrite
+
+When the base production belongs to another user and the EOS ACL
+(`egroup:...:rw!d`) forbids overwriting it, reproduce the broken chunks into a
+separate patch directory and build a view that substitutes them:
+
+```bash
+python3 tools/build_skim_overlay.py \
+  --era Run3_2024 \
+  --base /eos/cms/store/group/phys_higgs/cmshmm/vdamante/skim_v4 \
+  --patch /eos/cms/store/group/phys_higgs/cmshmm/vdamante/skim_v4_patch \
+  --output /eos/cms/store/group/phys_higgs/cmshmm/vdamante/skim_v4_overlay \
+  --state-dir htcondor/skim_v4 \
+  --run
+```
+
+Without `--run` the tool only prints what it would link. `--blacklist FILE` is
+repeatable and drops known-bad chunks from the view.
+
 ## Local Histogram Smoke Tests
 
 `hist_maker.py` accepts either one skim ROOT file or a directory of skim ROOT files.
@@ -896,6 +951,74 @@ code/config change.
 
 The JSON files are correctionlib-style `CorrectionSet`s. Use `isVBF=1` for VBF
 and `isVBF=0` for ggF when evaluating them directly with correctionlib.
+
+### Where the payloads come from
+
+Every payload location lives in `config/<era>/process_names.yaml`, under the
+`reweight_jsons` block of the DY process entry:
+
+```yaml
+  reweight_jsons: &dy_reweight_jsons
+    ptll_njets: reweights/dy_ptll_reweight_skim_v4/Run3_2022/dy_ptll_reweight_smart.json
+    njets: reweights/dy_njets_reweight_skim_v4/Run3_2022/dy_njets_reweight.json
+    jet_component: reweights/dy_012j_reweight_skim_v4/Run3_2022/dy_012j_reweight.json
+```
+
+There is no hard-coded fallback in the code. `prepare_rdf` forwards
+`reweight_jsons` to `apply_custom_weights`; when a caller leaves it `None`,
+`reweight_json_paths` reads the block back from that YAML (entry of the process
+owning the dataset, falling back to `DY`) and prints where it took it from. A
+key that is not configured raises `KeyError` and a configured file that is
+missing raises `FileNotFoundError`, both naming the config file. Payload
+locations therefore only ever change by editing the era configuration.
+
+`--no-custom-weights` still applies the DY amcatnlo normalization
+(`ApplyDYAmcatnloNormalization`) and only skips the three reweights.
+
+### One payload per era
+
+Each era points at its own payload. `campaigns/workflow.py:fit_groups` derives
+the fit grouping from those paths rather than from a hard-coded era pairing:
+eras configured to share one JSON are fitted together from their combined
+inputs, eras with their own JSON are fitted alone. Selecting only part of a
+shared group is rejected, because that would fit a shared payload from partial
+inputs.
+
+The per-era fits are not a cosmetic split. For the 012j weights the pile-up
+components differ substantially between 2022 and 2022EE, and the combined fit
+was dominated by the larger era:
+
+| component | Run3_2022 | Run3_2022EE | combined |
+|---|---:|---:|---:|
+| 1JPU / 2JPU | 0.8159 | 0.5082 | 0.5511 |
+| VBFPU1 | 0.7211 | 0.2917 | 0.3867 |
+| VBFHard | 0.7760 | 0.7088 | 0.7561 |
+| 0J | 1.0372 | 1.0552 | 1.0511 |
+
+### Selecting the stage
+
+`--dy-weights` enables exactly the listed reweights and disables the others,
+so intermediate stages are requested explicitly instead of editing a campaign:
+
+```bash
+bash campaigns/<campaign>.sh submit --dy-weights jet-component
+bash campaigns/<campaign>.sh submit --dy-weights jet-component,ptll
+bash campaigns/<campaign>.sh submit --dy-weights ''      # disable all three
+```
+
+The DY-weight workflow itself takes `--weight-stage {all,jet,ptll,njets}` and
+the extra actions `run`, `fit` and `check-weights`.
+
+### PU1 and PU2 in the 012j fit
+
+`tools/derive_dy_012j_reweight.py` ties PU1 and PU2 to one scale factor in 2J
+(`2JPU`) and in VBF (`VBFPU`); the equality is in the parameterisation, not
+applied afterwards, and the payload repeats the fitted value under both
+component keys. Fitting them independently was tried and rejected: it lowers the
+2J chi2 (713.8 to 261.9 in Run3_2023) but splits the scales in a way no pile-up
+mismodelling produces, 2JPU1 = 2.34 against 2JPU2 = 0.26, with the total PU
+yield dropping 25% and the Hard scale rising to compensate through a -0.84
+correlation. The untied fit is still run as a diagnostic and reported.
 
 ### pt(ll)
 
