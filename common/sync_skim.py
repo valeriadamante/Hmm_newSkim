@@ -2,7 +2,10 @@
 import json
 from pathlib import Path
 
-from common.add_vars import DefineSelections
+from common.add_vars import (
+    DefineSelections, GetAllMuonsObservablesNew, SelectedJetObservablesDef,
+    SoftJetCollectionCleaningInVBF, VBFJetMuonsObservablesDef, VBFJetObservablesDef,
+)
 
 
 def regions_for_sample(is_data):
@@ -20,6 +23,13 @@ def json_value(value):
 
 
 def prepare_sync(df, selections, is_data, category):
+    # Stesso ordine di common.prepare_rdf: il sync deve riportare esattamente
+    # le grandezze di alto livello che usa l'analisi, non una loro ridefinizione.
+    df = SelectedJetObservablesDef(df)
+    df = VBFJetObservablesDef(df)
+    df = GetAllMuonsObservablesNew(df)
+    df = VBFJetMuonsObservablesDef(df)
+    df = SoftJetCollectionCleaningInVBF(df)
     df = DefineSelections(df, selections)
     df = df.Define('Sync_Jet_pt_raw', 'Jet_pt_nocorr * (1.f - Jet_rawFactor)')
     df = df.Define('Sync_SelectedJet_pt_raw', 'Take(Sync_Jet_pt_raw, SelectedJet_idx)')
