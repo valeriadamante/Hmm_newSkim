@@ -1,10 +1,9 @@
 #!/usr/bin/env python3
 """Sequentially fit the six DY reco/PU components in the 2J, 1J and 0J regions.
 
-Fits use ROOT Minuit2/Migrad with non-negative scale factors. Each gen-matching
-category gets its own scale: 0J has 1 parameter, 1J has 2 (Hard, PU), 2J has 3
-(Hard, PU1, PU2) and VBF has 3. The joint 1J+2J fallback below still shares one
-PU parameter across 1J and 2J, by construction of that model.
+Fits use ROOT Minuit2/Migrad with non-negative scale factors. PU1 and PU2 always
+share one scale factor, in 2J (2JPU) as well as in VBF (VBFPU): the equality is
+in the parameterisation, not applied afterwards.
 
 For the relation between 1JPU and 2JPU use:
   --pu-1j2j separate : 2J and 1J are fitted in disjoint reco-jet regions
@@ -71,23 +70,40 @@ GGF_ACTIVE_COMPONENTS = {
 }
 VBF_OBSERVABLE = "eta_signed_vs_pt_vbfjet1"
 
-# One free scale per gen-matching category: 1 parameter in 0J, 2 in 1J, 3 in
-# 2J and 3 in VBF. PU1 (one of the two jets from pile-up) and PU2 (both) are
-# fitted independently: they are different physical configurations and PU2
-# carries 5-12% of the 2J yield and up to 20% of the VBF yield, enough to
-# constrain its own scale.
+# PU1 and PU2 share one parameter, in 2J (2JPU) and in VBF (VBFPU); the payload
+# duplicates the fitted value under both component keys.
+#
+# Fitting them independently was tried and rejected. It lowers the 2J chi2
+# (713.8 -> 261.9 in Run3_2023) but drives the two scales apart in a way no
+# pile-up mismodelling can produce: 2JPU1 = 2.34 with 2JPU2 = 0.26, while a
+# per-jet PU rate off by f implies f for one PU jet and f^2 for two. Only 8% of
+# that chi2 gain comes from the forward horn region; the rest is central, and
+# the total PU yield drops 25% with the Hard scale rising to compensate,
+# through a -0.84 correlation between 2JHard and 2JPU2. In the 2022 eras the
+# free fit pushes 2JPU2 onto the lower boundary and the auto mode then falls
+# back to a single PU shared across 1J and 2J, which is coarser still.
 SEPARATE_MODELS = {
-    "2J": (
-        ("2JHard", "2JPU1", "2JPU2"),
-        {"2JHard": "2JHard", "2JPU1": "2JPU1", "2JPU2": "2JPU2"},
-    ),
+    "2J": (("2JHard", "2JPU"), {"2JHard": "2JHard", "2JPU1": "2JPU", "2JPU2": "2JPU"}),
     "1J": (("1JHard", "1JPU"), {"1JHard": "1JHard", "1JPU": "1JPU"}),
     "0J": (("0J",), {"0J": "0J"}),
 }
 VBF_MODEL = (
-    ("VBFHard", "VBFPU1", "VBFPU2"),
-    {"VBFHard": "VBFHard", "VBFPU1": "VBFPU1", "VBFPU2": "VBFPU2"},
+    ("VBFHard", "VBFPU"),
+    {"VBFHard": "VBFHard", "VBFPU1": "VBFPU", "VBFPU2": "VBFPU"},
 )
+
+# Same stages with PU1 and PU2 free. Always fitted, as a diagnostic, to report
+# their independent values and their correlation even when the payload ties them.
+UNTIED_MODELS = {
+    "2J": (
+        ("2JHard", "2JPU1", "2JPU2"),
+        {"2JHard": "2JHard", "2JPU1": "2JPU1", "2JPU2": "2JPU2"},
+    ),
+    "VBF": (
+        ("VBFHard", "VBFPU1", "VBFPU2"),
+        {"VBFHard": "VBFHard", "VBFPU1": "VBFPU1", "VBFPU2": "VBFPU2"},
+    ),
+}
 
 # Joint 1J+2J fit: one PU parameter shared by 1JPU, 2JPU1 and 2JPU2.  The 1J
 # observables are disjoint in reconstructed-jet multiplicity, so one data
@@ -372,6 +388,63 @@ def fit_failure_reasons(result, boundary, pu_parameters=()):
         if value <= boundary:
             reasons.append(f"{name} at lower boundary ({value:.3g} <= {boundary:.3g})")
     return reasons
+
+
+def pu12_diagnostic(observable, stage, args):
+    """Fit PU1 and PU2 independently and decide whether they must share a scale.
+
+    The independent fit runs even when the payload ties the two, so the values,
+    their uncertainties and above all their correlation are always recorded.
+    A reason list that comes back non-empty means the free fit is not usable.
+    """
+    parameters, component_map = UNTIED_MODELS[stage]
+    background, matrix, variance = stage_system(
+        observable, parameters, component_map, {}
+    )
+    result = fit_minuit_chi2(
+        observable["data"], background, matrix, variance, parameters
+    )
+    pu1, pu2 = (name for name in parameters if name.endswith(("PU1", "PU2")))
+    index = {name: position for position, name in enumerate(result["parameters"])}
+    rho = float(correlation(result["covariance"])[index[pu1], index[pu2]])
+    first = float(result["theta"][index[pu1]])
+    second = float(result["theta"][index[pu2]])
+
+    reasons = fit_failure_reasons(result, args.auto_pu_boundary, (pu1, pu2))
+    for name, value in ((pu1, first), (pu2, second)):
+        if not args.pu12_min_scale <= value <= args.pu12_max_scale:
+            reasons.append(
+                f"{name}={value:.4g} outside "
+                f"[{args.pu12_min_scale}, {args.pu12_max_scale}]"
+            )
+    # A per-jet PU rate wrong by f scales one PU jet by f and two by f^2, so the
+    # two corrections sit on the same side of unity. Straddling it is unphysical.
+    if (first - 1.0) * (second - 1.0) < 0.0:
+        reasons.append(
+            f"{pu1}={first:.4g} and {pu2}={second:.4g} straddle 1"
+        )
+    if abs(rho) > args.pu12_max_correlation:
+        reasons.append(
+            f"|rho({pu1},{pu2})|={abs(rho):.3f} > {args.pu12_max_correlation}"
+        )
+
+    diagnostic = {
+        "parameters": list(result["parameters"]),
+        "values": result["theta"].tolist(),
+        "errors": result["errors"].tolist(),
+        "correlation": correlation(result["covariance"]).tolist(),
+        "correlation_pu1_pu2": rho,
+        "chi2_postfit": result["chi2_postfit"],
+        "ndof": result["ndof"],
+        "tie_reasons": reasons,
+    }
+    print(
+        f"[PU12] {stage} independent fit: {pu1}={first:.6g}, {pu2}={second:.6g}, "
+        f"rho={rho:+.3f}, chi2/ndof={result['chi2_postfit']:.1f}/{result['ndof']}"
+    )
+    for reason in reasons:
+        print(f"       - {reason}")
+    return diagnostic, result
 
 
 def stage_system(observable, parameters, component_map, fixed):
@@ -755,6 +828,26 @@ def main():
         "--auto-pu-boundary", type=float, default=1.0e-6,
         help="In --pu-1j2j auto, PU values <= this count as hitting the lower limit.",
     )
+    parser.add_argument(
+        "--pu1-pu2", choices=("tied", "separate", "auto"), default="tied",
+        help=("tied (default): PU1 and PU2 share one scale in 2J and VBF; "
+              "separate: keep the independent scales; "
+              "auto: keep them separate unless the free fit fails, leaves the "
+              "physical range, straddles 1 or is too correlated. The independent "
+              "fit and its PU1-PU2 correlation are recorded in every mode."),
+    )
+    parser.add_argument(
+        "--pu12-max-correlation", type=float, default=0.8,
+        help="Tie PU1 and PU2 when |correlation| from the free fit exceeds this.",
+    )
+    parser.add_argument(
+        "--pu12-min-scale", type=float, default=0.2,
+        help="Tie PU1 and PU2 when a free scale falls below this.",
+    )
+    parser.add_argument(
+        "--pu12-max-scale", type=float, default=5.0,
+        help="Tie PU1 and PU2 when a free scale rises above this.",
+    )
     args = parser.parse_args()
 
     input_dirs = args.input_dir
@@ -827,15 +920,33 @@ def main():
     auto_reasons = []
     result_2j = result_1j = None
 
+    pu12_diagnostics = {}
+    pu12_modes = {}
+
     if args.pu_1j2j in ("separate", "auto"):
-        parameters, map_2j = SEPARATE_MODELS["2J"]
-        background, matrix, variance = stage_system(ggf["2J"], parameters, map_2j, {})
-        result_2j = fit_minuit_chi2(
-            ggf["2J"]["data"], background, matrix, variance, parameters
+        diagnostic, untied_2j = pu12_diagnostic(ggf["2J"], "2J", args)
+        pu12_diagnostics["2J"] = diagnostic
+        tie_2j = args.pu1_pu2 == "tied" or (
+            args.pu1_pu2 == "auto" and diagnostic["tie_reasons"]
+        )
+        pu12_modes["2J"] = "tied" if tie_2j else "separate"
+        if tie_2j:
+            parameters, map_2j = SEPARATE_MODELS["2J"]
+            background, matrix, variance = stage_system(
+                ggf["2J"], parameters, map_2j, {}
+            )
+            result_2j = fit_minuit_chi2(
+                ggf["2J"]["data"], background, matrix, variance, parameters
+            )
+        else:
+            parameters, map_2j = UNTIED_MODELS["2J"]
+            result_2j = untied_2j
+        pu_names = tuple(
+            name for name in parameters if name.endswith(("PU", "PU1", "PU2"))
         )
         auto_reasons += [
             f"2J: {reason}" for reason in
-            fit_failure_reasons(result_2j, args.auto_pu_boundary, ("2JPU1", "2JPU2"))
+            fit_failure_reasons(result_2j, args.auto_pu_boundary, pu_names)
         ]
 
         parameters, map_1j = SEPARATE_MODELS["1J"]
@@ -927,7 +1038,11 @@ def main():
         for stage, result, fixed in (
             ("2J", result_2j, {}), ("1J", result_1j, {}),
         ):
-            component_map = SEPARATE_MODELS[stage][1]
+            component_map = (
+                UNTIED_MODELS["2J"][1]
+                if stage == "2J" and pu12_modes.get("2J") == "separate"
+                else SEPARATE_MODELS[stage][1]
+            )
             record(result, component_map)
             stage_summaries.append(summary(
                 stage, GGF_OBSERVABLES[stage], args.region, result, component_map, fixed,
@@ -975,9 +1090,19 @@ def main():
         args, input_dirs, f"{args.vbf_region}/{VBF_OBSERVABLE}", "VBF", VBF_COMPONENTS,
     )
     used.update(vbf["used"])
-    parameters, map_vbf = VBF_MODEL
-    background, matrix, variance = stage_system(vbf, parameters, map_vbf, {})
-    result = fit_minuit_chi2(vbf["data"], background, matrix, variance, parameters)
+    diagnostic, untied_vbf = pu12_diagnostic(vbf, "VBF", args)
+    pu12_diagnostics["VBF"] = diagnostic
+    tie_vbf = args.pu1_pu2 == "tied" or (
+        args.pu1_pu2 == "auto" and diagnostic["tie_reasons"]
+    )
+    pu12_modes["VBF"] = "tied" if tie_vbf else "separate"
+    if tie_vbf:
+        parameters, map_vbf = VBF_MODEL
+        background, matrix, variance = stage_system(vbf, parameters, map_vbf, {})
+        result = fit_minuit_chi2(vbf["data"], background, matrix, variance, parameters)
+    else:
+        parameters, map_vbf = UNTIED_MODELS["VBF"]
+        result = untied_vbf
     record(result, map_vbf)
     stage_summaries.append(summary(
         "VBF", VBF_OBSERVABLE, args.vbf_region, result, map_vbf, {},
@@ -1023,6 +1148,16 @@ def main():
         "pu_1j2j_requested": args.pu_1j2j,
         "pu_1j2j_effective": effective_pu_mode,
         "auto_pu_boundary": args.auto_pu_boundary,
+        "pu1_pu2_requested": args.pu1_pu2,
+        "pu1_pu2_effective": pu12_modes,
+        "pu1_pu2_thresholds": {
+            "max_correlation": args.pu12_max_correlation,
+            "min_scale": args.pu12_min_scale,
+            "max_scale": args.pu12_max_scale,
+        },
+        # Independent PU1/PU2 fit, recorded in every mode: the payload may tie
+        # the two, but their free values and correlation stay visible.
+        "pu1_pu2_independent_fit": pu12_diagnostics,
         "auto_fallback_reasons": auto_reasons,
         "variance": "data + fixed background + nominal active DY histogram variances",
         "fit_order": (

@@ -14,8 +14,8 @@ DY:
     VBF PU1: steelblue
     VBF PU2: midnightblue
   reweight_jsons: &dy_reweight_jsons
-    ptll_njets: reweights/dy_ptll_reweight_skim_v4/Run3_2023_2023BPix/dy_ptll_reweight_smart.json
-    njets: reweights/dy_njets_reweight_skim_v4/Run3_2023_2023BPix/dy_njets_reweight.json
+    ptll_njets: reweights/dy_ptll_reweight_skim_v4/Run3_2023/dy_ptll_reweight_smart.json
+    njets: reweights/dy_njets_reweight_skim_v4/Run3_2023/dy_njets_reweight.json
     jet_component: reweights/dy_012j_reweight_skim_v4/Run3_2023/dy_012j_reweight.json
   # processors: config/dy_xs_stitch_allFlavors.yaml
   datasets:

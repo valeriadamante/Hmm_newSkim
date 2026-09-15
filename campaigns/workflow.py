@@ -569,16 +569,22 @@ def make_campaign(kind, args):
         c.hist_args = set_option(c.hist_args, '--variables', c.variables)
     if args.datasets: c.groups = args.datasets
     if args.weights == 'none': c.hist_args += ['--no-custom-weights']
-    if args.dy_weights is not None:
-        requested = set(csv(args.dy_weights))
-        if requested - {'jet-component', 'ptll', 'njets'}: raise ValueError('Unknown DY weight')
-        for weight in ('jet-component', 'ptll', 'njets'):
-            c.hist_args = [x for x in c.hist_args if x not in ('--dy-'+weight+'-reweight', '--no-dy-'+weight+'-reweight')]
-            c.hist_args.append(('--dy-' if weight in requested else '--no-dy-')+weight+'-reweight')
+    if args.dy_weights is not None: c.hist_args = dy_weight_flags(c.hist_args, args.dy_weights)
     if args.output_root: c.root = Path(args.output_root).resolve()
     if args.regions: c.regions = csv(args.regions)
     if args.categories: c.categories = csv(args.categories)
     return input_overrides(c, args)
+
+
+def dy_weight_flags(hist_args, requested):
+    """Enable exactly the requested DY reweights, disabling the others."""
+    requested = set(csv(requested))
+    unknown = requested - {'jet-component', 'ptll', 'njets'}
+    if unknown: raise ValueError(f'Unknown DY weight: {",".join(sorted(unknown))}')
+    for weight in ('jet-component', 'ptll', 'njets'):
+        hist_args = [x for x in hist_args if x not in ('--dy-'+weight+'-reweight', '--no-dy-'+weight+'-reweight')]
+        hist_args.append(('--dy-' if weight in requested else '--no-dy-')+weight+'-reweight')
+    return hist_args
 
 
 def input_overrides(c, args, no_horn=False):
@@ -604,9 +610,21 @@ def input_overrides(c, args, no_horn=False):
 
 def horn_campaign(variant, args):
     root = Path(args.output_root).resolve() if args.output_root else EOS/('campaigns/JetHornVetoComparison' + ('_AllWeights' if args.weights == 'analysis' else ''))
-    hist = ['--custom-weights','--dy-jet-component-reweight','--dy-ptll-reweight','--dy-njets-reweight'] if args.weights == 'analysis' else ['--no-custom-weights','--no-dy-jet-component-reweight','--no-dy-ptll-reweight','--no-dy-njets-reweight']
-    c = Campaign('JetHornVeto_'+variant, root/variant, ['2024','2025','2026'], [], 'data,DY_amcatnlo',
-                 hist+['--variables',*HORN_VARIABLES], ['Signal_Fit','Z_sideband','H_sideband','mass_inclusive'], ['VBF','ggF','baseline'], HORN_VARIABLES)
+    # --dy-weights sceglie lo stadio dei pesi DY; senza di esso restano i due
+    # estremi storici, tutti i reweight o nessuno.
+    if args.dy_weights is not None:
+        hist = dy_weight_flags(['--custom-weights'], args.dy_weights)
+    elif args.weights == 'analysis':
+        hist = ['--custom-weights','--dy-jet-component-reweight','--dy-ptll-reweight','--dy-njets-reweight']
+    else:
+        hist = ['--no-custom-weights','--no-dy-jet-component-reweight','--no-dy-ptll-reweight','--no-dy-njets-reweight']
+    # Come le altre campagne, il confronto horn accetta un elenco esplicito di
+    # variabili e di gruppi: le sole variabili jet e i soli data/DY restano i
+    # default storici, non un vincolo del workflow.
+    variables = csv(args.variables) if args.variables else HORN_VARIABLES
+    groups = args.datasets or 'data,DY_amcatnlo'
+    c = Campaign('JetHornVeto_'+variant, root/variant, ['2024','2025','2026'], [], groups,
+                 hist+['--variables',*variables], ['Signal_Fit','Z_sideband','H_sideband','mass_inclusive'], ['VBF','ggF','baseline'], variables)
     if variant == 'NoHornVeto':
         c.input_root += '_noJetHornVeto'; c.manifests += '_noJetHornVeto'; c.hist_args += ['--disable-jet-horn-veto']
     return input_overrides(c, args, variant == 'NoHornVeto')
@@ -678,13 +696,29 @@ def weight_workflow(stage, args):
     return Workflow(c,opts)
 
 
-def fit_groups(eras):
+def fit_groups(eras, key='jet_component'):
+    """Group the selected eras by the payload they are configured to share.
+
+    The grouping follows process_names.yaml rather than a hard-coded pairing:
+    eras pointing at the same reweight JSON are fitted together, eras with their
+    own JSON are fitted alone. Selecting only part of a shared group would fit
+    that payload from partial inputs, so it is rejected.
+    """
+    known = ['Run3_' + era for era in ERAS] + ['Run3_2026']
+    shared = {}
+    for era in dict.fromkeys(list(eras) + known):
+        if era not in eras and not (REPO / 'config' / era).is_dir():
+            continue
+        shared.setdefault(str(payload_path(era, key)), []).append(era)
     groups = []
     for era in eras:
-        short = era.removeprefix('Run3_')
-        pair = ['Run3_2022','Run3_2022EE'] if short in ('2022','2022EE') else ['Run3_2023','Run3_2023BPix'] if short in ('2023','2023BPix') else [era]
-        if not set(pair) <= set(eras): raise ValueError(f'Weights for {era} use a combined fit: select {",".join(pair)}')
-        if pair not in groups: groups.append(pair)
+        group = shared[str(payload_path(era, key))]
+        missing = [name for name in group if name not in eras]
+        if missing:
+            raise ValueError(
+                f'Weights for {era} use a combined fit: select {",".join(group)}'
+            )
+        if group not in groups: groups.append(group)
     return groups
 
 
@@ -695,7 +729,7 @@ def payload_path(era, key):
 
 
 def check_payloads(w, key):
-    for group in fit_groups(w.eras):
+    for group in fit_groups(w.eras, key):
         path = payload_path(group[0],key)
         if any(payload_path(e,key) != path for e in group): raise ValueError('Combined eras configure different payload paths')
         inputs = [p for e in group for p in hadded_products(w.c,e,'Central')]
@@ -710,7 +744,7 @@ def check_payloads(w, key):
 
 def fit_weights(w, stage):
     if not w.args.dry_run: w.check('hadded')
-    for group in fit_groups(w.eras):
+    for group in fit_groups(w.eras, stage[2]):
         era = group[0] if len(group) == 1 else 'Run3_'+'_'.join(e.removeprefix('Run3_') for e in group)
         path = payload_path(group[0],stage[2])
         output = path.parent
@@ -739,7 +773,7 @@ def weights(args):
     for stage in stages:
         w = weight_workflow(stage,args)
         if args.action in ('run','fit','check-weights'):
-            fit_groups(w.eras)  # Fits require both eras sharing a payload.
+            fit_groups(w.eras, stage[2])  # Reject a partial shared-payload group.
         if args.action == 'run':
             if args.dry_run:
                 w.submit(); w.hadd(); fit_weights(w,stage); continue
