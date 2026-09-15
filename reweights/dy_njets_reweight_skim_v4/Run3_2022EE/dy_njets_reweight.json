@@ -1,0 +1,104 @@
+{
+  "corrections": [
+    {
+      "data": {
+        "content": [
+          {
+            "key": 0,
+            "value": {
+              "content": [
+                0.9994599985795718,
+                1.0008549677788297,
+                0.9769915399687309,
+                1.0973452946315119,
+                1.3411143245851516,
+                1.5701479987901343,
+                1.7852601691823058,
+                1.9919870876647772,
+                2.3518457834924207,
+                0.999240945474974,
+                0.0
+              ],
+              "edges": [
+                -0.5,
+                0.5,
+                1.5,
+                2.5,
+                3.5,
+                4.5,
+                5.5,
+                6.5,
+                7.5,
+                8.5,
+                9.5,
+                999.5
+              ],
+              "flow": "clamp",
+              "input": "nSelectedJets",
+              "nodetype": "binning"
+            }
+          },
+          {
+            "key": 1,
+            "value": {
+              "content": [
+                0.9934309381118693,
+                0.9934309381118693,
+                0.9116297552540952,
+                1.0042388586047897,
+                1.1840082279684936,
+                1.419907866844227,
+                1.5113835249434233,
+                1.4763086138815935,
+                1.9724652185300433,
+                0.9934309381118693,
+                0.9818067201844441
+              ],
+              "edges": [
+                -0.5,
+                0.5,
+                1.5,
+                2.5,
+                3.5,
+                4.5,
+                5.5,
+                6.5,
+                7.5,
+                8.5,
+                9.5,
+                999.5
+              ],
+              "flow": "clamp",
+              "input": "nSelectedJets",
+              "nodetype": "binning"
+            }
+          }
+        ],
+        "default": 1.0,
+        "input": "isVBF",
+        "nodetype": "category"
+      },
+      "description": "DY N_selected jets bin-by-bin reweighting from (Data - nonDY) / DY.",
+      "inputs": [
+        {
+          "description": "VBF category flag: 1 for VBF, 0 for ggF.",
+          "name": "isVBF",
+          "type": "int"
+        },
+        {
+          "description": "Number of selected jets.",
+          "name": "nSelectedJets",
+          "type": "real"
+        }
+      ],
+      "name": "dy_njets_reweight",
+      "output": {
+        "description": "DY N_selected jets event weight.",
+        "name": "weight",
+        "type": "real"
+      },
+      "version": 1
+    }
+  ],
+  "schema_version": 2
+}
