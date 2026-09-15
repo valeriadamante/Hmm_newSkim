@@ -48,6 +48,26 @@ def export_sync(df, selections, is_data, category, output_dir, metadata):
             'idx', 'pt', 'eta', 'phi', 'mass', 'charge', 'pt_raw_noCorr',
             'pt_raw_corr', 'pt_FSR_corr', 'mediumId', 'tightId', 'pfIsoId',
             'HasTriggerMatching_singleMu', 'GenMatched', 'genPartIdx', 'genPartFlav')]
+    # Variabili dimuoniche (muoni corretti BSC+KIT e FSR recuperati) e input
+    # ad alto livello del training ggH/VBF, cosi' il sync copre le stesse
+    # grandezze usate dal DNN e non solo gli oggetti.
+    columns += ['pt_mumu', 'eta_mumu', 'phi_mumu', 'y_mumu', 'dR_mumu',
+                'cosTheta_CS', 'phi_CS', 'R_pt', 'minDeltaEtaSigned', 'minDeltaPhi',
+                'Zeppenfeld_Var', 'pt_centrality', 'm_jj', 'm_jj_ls',
+                'delta_eta_jj', 'delta_eta_jj_ls', 'pt_vbfj1j2', 'era_code',
+                'SoftActivityJetHT', 'nSoftActivityJet',
+                'SoftJetCleanedActivity_N', 'SoftJetCleanedActivity_ptSum',
+                'SoftJetActivity_NoOverlapWithMuonsAndEtaCleaning_N',
+                'SoftJetActivity_NoOverlapWithMuonsAndEtaCleaning_ptSum']
+    for leg in (1, 2):
+        columns += [f'vbfjet{leg}_{field}' for field in
+                    ('pt', 'eta', 'phi', 'mass', 'y', 'btagPNetQvG')]
+    # Pesi per la sincronizzazione MC; assenti nei dati e quindi filtrati via.
+    if not is_data:
+        columns += ['genWeight', 'weight_Central', 'weight__Central',
+                    'weight_pu_Central', 'puWeight']
+        columns += [c for c in sorted(available)
+                    if c.startswith(('weight_mu1_', 'weight_mu2_')) and c.endswith('_Central')]
     columns = list(dict.fromkeys(c for c in columns if c in available))
     summary = dict(metadata, category=category, counts={}, regions={},
                    distribution_weights='none (event counts)', event_key=['run', 'luminosityBlock', 'event'],

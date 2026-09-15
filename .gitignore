@@ -60,8 +60,7 @@ histograms/scripts/
 /skim_v4_sync/
 
 # Condor bookkeeping and logs of the skim_v4 productions (multi-GB, local only).
-htcondor/skim_v4/
-htcondor/skim_v4_noJetHornVeto/
+htcondor/skim_v4*/
 
 # Campaign definitions are configuration: keep them in git despite the *.sh rule.
 !config/campaigns/*.sh
