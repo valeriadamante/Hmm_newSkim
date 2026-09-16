@@ -36,4 +36,9 @@ JSON_INPUT="$ROOT_INPUT"
 MANIFEST_INPUT="/eos/user/v/vdamante/H_mumu/manifests_skim_v3"
 
 # Continue the existing Sep_03 production; CLI options can override these defaults.
-CAMPAIGN_OPTIONS=(--mode both --systematics-layout together --jes total)
+# Default dal 16/09/2026: JES nelle 11 famiglie regrouped, come all_variables.
+# Il precedente --jes total collassava il JES in una sola nuisance
+# CMS_scale_j_total, incompatibile con il modello di correlazione usato dal
+# resto dell'analisi. Il layout storico Sep_03 resta ottenibile passando
+# esplicitamente --systematics-layout together --jes total.
+CAMPAIGN_OPTIONS=(--mode both --systematics-layout split --jes regrouped)

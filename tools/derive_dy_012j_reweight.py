@@ -390,6 +390,19 @@ def fit_failure_reasons(result, boundary, pu_parameters=()):
     return reasons
 
 
+def pu12_mode_for(stage, args):
+    """Modo richiesto per lo stadio: --pu1-pu2-vbf, se dato, vale solo per VBF."""
+    if stage == "VBF" and getattr(args, "pu1_pu2_vbf", None):
+        return args.pu1_pu2_vbf
+    return args.pu1_pu2
+
+
+def tie_decision(stage, diagnostic, args):
+    """True se PU1 e PU2 devono condividere una scala in questo stadio."""
+    mode = pu12_mode_for(stage, args)
+    return mode == "tied" or (mode == "auto" and bool(diagnostic["tie_reasons"]))
+
+
 def pu12_diagnostic(observable, stage, args):
     """Fit PU1 and PU2 independently and decide whether they must share a scale.
 
@@ -837,6 +850,13 @@ def main():
               "fit and its PU1-PU2 correlation are recorded in every mode."),
     )
     parser.add_argument(
+        "--pu1-pu2-vbf", choices=("tied", "separate", "auto"), default=None,
+        help=("Come --pu1-pu2 ma solo per lo stadio VBF. Omesso, il VBF segue "
+              "--pu1-pu2. Permette per esempio PU1=PU2 in ggF e scale libere in "
+              "VBF, che e' lo stadio dove le due componenti sono meglio "
+              "separate e meno anticorrelate con l'Hard."),
+    )
+    parser.add_argument(
         "--pu12-max-correlation", type=float, default=0.8,
         help="Tie PU1 and PU2 when |correlation| from the free fit exceeds this.",
     )
@@ -926,9 +946,7 @@ def main():
     if args.pu_1j2j in ("separate", "auto"):
         diagnostic, untied_2j = pu12_diagnostic(ggf["2J"], "2J", args)
         pu12_diagnostics["2J"] = diagnostic
-        tie_2j = args.pu1_pu2 == "tied" or (
-            args.pu1_pu2 == "auto" and diagnostic["tie_reasons"]
-        )
+        tie_2j = tie_decision("2J", diagnostic, args)
         pu12_modes["2J"] = "tied" if tie_2j else "separate"
         if tie_2j:
             parameters, map_2j = SEPARATE_MODELS["2J"]
@@ -1092,9 +1110,7 @@ def main():
     used.update(vbf["used"])
     diagnostic, untied_vbf = pu12_diagnostic(vbf, "VBF", args)
     pu12_diagnostics["VBF"] = diagnostic
-    tie_vbf = args.pu1_pu2 == "tied" or (
-        args.pu1_pu2 == "auto" and diagnostic["tie_reasons"]
-    )
+    tie_vbf = tie_decision("VBF", diagnostic, args)
     pu12_modes["VBF"] = "tied" if tie_vbf else "separate"
     if tie_vbf:
         parameters, map_vbf = VBF_MODEL
@@ -1149,6 +1165,7 @@ def main():
         "pu_1j2j_effective": effective_pu_mode,
         "auto_pu_boundary": args.auto_pu_boundary,
         "pu1_pu2_requested": args.pu1_pu2,
+        "pu1_pu2_requested_vbf": args.pu1_pu2_vbf or args.pu1_pu2,
         "pu1_pu2_effective": pu12_modes,
         "pu1_pu2_thresholds": {
             "max_correlation": args.pu12_max_correlation,

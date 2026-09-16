@@ -53,9 +53,16 @@ def DefineSelections(df, sel_config, syst_cfg=None, want_variations=False):
                 expression = expression_template.format(
                     tot_suff=total_suffix, mu_suff=muon_suffix, jet_suff=jet_suffix
                 )
+                # Le selezioni si ricalcolano sempre dall'espressione, anche
+                # quando un ramo omonimo esiste nello skim. Fidarsi del ramo
+                # memorizzato rompe i dataset a schema misto: RDF ricava le
+                # colonne dai primi file della catena, quindi un ramo presente
+                # solo in alcuni file sembra disponibile e la lettura poi
+                # fallisce sugli altri con "tree does not have a branch".
+                # Capitato su Run3_2024/Muon1_Run2024G, dove muons_SS_presel_trg
+                # esiste in 12 file su 204.
                 if column_name in defined_columns:
-                    if section != "muons_selection":
-                        df = df.Redefine(column_name, expression)
+                    df = df.Redefine(column_name, expression)
                 else:
                     df = df.Define(column_name, expression)
                     defined_columns.add(column_name)

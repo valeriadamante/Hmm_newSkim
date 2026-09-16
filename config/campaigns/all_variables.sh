@@ -9,7 +9,9 @@ CHUNK_SIZE=1
 REQUEST_CPUS=4
 REQUEST_MEMORY=20GB
 RDF_THREADS=4
-VARIABLE_BATCH_SIZE=8
+# Tutte le variabili (39) in un solo event loop: ogni loop rilegge gli input,
+# e su DYto2L_M_50 i 4 loop in piu' costavano ~35 min su 2h16.
+VARIABLE_BATCH_SIZE=100
 SYSTEMATICS=(Central JEReta0pt0 JEReta1pt0 JEReta2pt0 JEReta2pt1 JEReta3pt0 JEReta3pt1 JES_Total Muon PDF PU QCDScale ScaRe)
 ROOT_INPUT="/eos/cms/store/group/phys_higgs/cmshmm/vdamante/skim_v3"
 JSON_INPUT="$ROOT_INPUT"

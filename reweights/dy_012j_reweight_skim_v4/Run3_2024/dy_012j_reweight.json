@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "description": "Data-driven DY hard-jet component fit for Run3_2022",
+  "description": "Data-driven DY hard-jet component fit for Run3_2024",
   "corrections": [
     {
       "name": "dy_012j_reweight",
@@ -23,39 +23,39 @@
         "content": [
           {
             "key": "0J",
-            "value": 1.0372023753570323
+            "value": 1.0602776240909502
           },
           {
             "key": "1JHard",
-            "value": 0.9286967298222938
+            "value": 0.998548583461973
           },
           {
             "key": "1JPU",
-            "value": 0.8263001948917008
+            "value": 0.6225203676655894
           },
           {
             "key": "2JHard",
-            "value": 0.9762437533190944
+            "value": 0.9617841582017287
           },
           {
             "key": "2JPU1",
-            "value": 0.5855345606613794
+            "value": 0.5632183033909413
           },
           {
             "key": "2JPU2",
-            "value": 0.5855345606613794
+            "value": 0.5632183033909413
           },
           {
             "key": "VBFHard",
-            "value": 0.880603309916288
+            "value": 1.1213856678970275
           },
           {
             "key": "VBFPU1",
-            "value": 1.1917558333250975
+            "value": 0.4413230870590577
           },
           {
             "key": "VBFPU2",
-            "value": 1.1917558333250975
+            "value": 0.4413230870590577
           }
         ],
         "default": 1.0

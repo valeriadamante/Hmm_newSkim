@@ -459,6 +459,37 @@ The allowed processes are configurable:
 The region-routed campaign enables the splitting for the process list in
 `config/histogram_sample_routing.yaml`.
 
+## 10b. Splitting one dataset across parallel jobs
+
+A campaign job covers a whole dataset, so the wall clock of an era is set by
+its largest sample. Measured on `Run3_2022EE`, `AllVariables_AllWeights`,
+Central: `DYto2L_M_50_amcatnloFXFX` (337 files) takes 8137 s, while every job
+other than DY finishes within ~900 s.
+
+`hist_maker.py` reads the normalization denominator from the dataset-wide
+report JSONs and not from the processed ROOT files, so a subset of the files
+carries the same weights as the full job. `--file-shard INDEX/TOTAL` uses this
+to process only one round-robin slice of the inputs; the sum of every shard
+reproduces the unsharded output bin by bin.
+
+`tools/shard_hists.py` drives the two steps and takes the same campaign
+configuration and input overrides as `campaigns/workflow.py`:
+
+```bash
+python3 tools/shard_hists.py submit --config all_variables \
+    --era Run3_2022EE --dataset DYto2L_M_50_amcatnloFXFX --shards 10
+python3 tools/shard_hists.py merge  --config all_variables \
+    --era Run3_2022EE --dataset DYto2L_M_50_amcatnloFXFX --shards 10
+```
+
+`submit` writes into `<campaign>/<family>/shards/<dataset>/<i>_of_<N>/<era>/`,
+which the campaign stages ignore. `merge` hadds the shards, including the jet
+and PU component files, into `<campaign>/<family>/<era>/<dataset>.root`, i.e.
+exactly the file `check`, `hadd` and the later stages expect, and refuses to
+run if a shard is missing or incomplete. Use `--family` for a systematic
+family, `--force` to resubmit existing shards and `--cleanup` to drop the
+shard directory after a successful merge.
+
 ## 11. Read-only histogram completeness check
 
 Given a histogram directory, list missing or zero-size per-dataset ROOT files:

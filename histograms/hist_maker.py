@@ -47,6 +47,20 @@ def profile_log(job, phase, started_at):
     elapsed = time.perf_counter() - started_at
     print(f"[PROFILE][{job}] {phase}: {elapsed:.3f} s", flush=True)
     return time.perf_counter()
+def parse_file_shard(value):
+    """Parse the 'INDEX/TOTAL' form of --file-shard into a 1-based pair."""
+    parts = str(value).split("/")
+    if len(parts) != 2:
+        raise ValueError("--file-shard must be given as INDEX/TOTAL")
+    try:
+        shard_index, shard_total = (int(part) for part in parts)
+    except ValueError:
+        raise ValueError("--file-shard must be given as INDEX/TOTAL") from None
+    if shard_total < 1:
+        raise ValueError("--file-shard TOTAL must be >= 1")
+    if not 1 <= shard_index <= shard_total:
+        raise ValueError("--file-shard INDEX must satisfy 1 <= INDEX <= TOTAL")
+    return shard_index, shard_total
 def batch_dict(items, batch_size):
     entries = list(items.items())
     return [
@@ -977,6 +991,17 @@ def main(argv=None, *, stage_settings=None):
         help="Process the first N valid ROOT files; normalization remains dataset-wide.",
     )
     parser.add_argument(
+        "--file-shard",
+        default=None,
+        help=(
+            "Process only shard INDEX of TOTAL, as 'INDEX/TOTAL' with "
+            "1 <= INDEX <= TOTAL. Files are distributed round-robin, so the "
+            "shards are size-balanced. The normalization denominator stays "
+            "dataset-wide, hence hadd-ing every shard reproduces the "
+            "unsharded output exactly."
+        ),
+    )
+    parser.add_argument(
         "--input-file-batch-size",
         type=int,
         default=None,
@@ -1143,6 +1168,8 @@ def main(argv=None, *, stage_settings=None):
     start_time = time.time()
     if args.max_files is not None and args.max_files < 1:
         raise ValueError("--max-files must be >= 1")
+    if args.file_shard is not None:
+        args.file_shard = parse_file_shard(args.file_shard)
     if args.rdf_threads < 1:
         raise ValueError("--rdf-threads must be >= 1")
     if args.systematic_batch_size < 1:
@@ -1382,6 +1409,14 @@ def main(argv=None, *, stage_settings=None):
         original_file_count = len(valid_root_files)
         valid_root_files = valid_root_files[: args.max_files]
         print(f"[TEST MODE] Processing {len(valid_root_files)}/{original_file_count} valid ROOT files.")
+    if args.file_shard is not None:
+        shard_index, shard_total = args.file_shard
+        sharded_file_count = len(valid_root_files)
+        valid_root_files = valid_root_files[shard_index - 1 :: shard_total]
+        print(
+            f"[SHARD {shard_index}/{shard_total}] Processing "
+            f"{len(valid_root_files)}/{sharded_file_count} valid ROOT files."
+        )
     if not valid_root_files:
         print("[WARNING] No validated ROOT files. Producing empty histograms.")
     if args.dryrun:

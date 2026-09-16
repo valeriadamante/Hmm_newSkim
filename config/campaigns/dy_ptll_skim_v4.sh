@@ -12,6 +12,14 @@ REQUEST_CPUS=4
 REQUEST_MEMORY=8GB
 RDF_THREADS=4
 
+# Senza queste tre righe workflow.py ricade sui default della dataclass, che
+# puntano a manifests_skim_v3: per il 2026 quella directory ha 21 manifest
+# invece di 93, e i 48 dataset assenti finiscono in --exclude-dataset con un
+# "[INFO] Excluding ... " che sembra un filtro voluto e non lo e'.
+ROOT_INPUT="/eos/cms/store/group/phys_higgs/cmshmm/vdamante/skim_v4"
+JSON_INPUT="$ROOT_INPUT"
+MANIFEST_INPUT="/eos/user/v/vdamante/H_mumu/manifests_skim_v4"
+
 HIST_ARGS=(
   --variables pt_mumu
   --mass-regions Z_sideband

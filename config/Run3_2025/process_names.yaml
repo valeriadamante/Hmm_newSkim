@@ -73,7 +73,10 @@ DYto2Mu_FlashSim:
   color: "kAzure+7"
   color_mplhep: dodgerblue
   datasets:
-    - DYto2Mu_M_50_amcatnloFXFX_Flashsim
+    # Commentato il 16/09/2026: questo dataset non e' in skim_cfg.yaml del 2025
+    # e non ha directory di skim, quindi la campagna lo attendeva per sempre e
+    # bloccava hadd/merge-syst. Riattivare quando lo skim esiste.
+    # - DYto2Mu_M_50_amcatnloFXFX_Flashsim
 
 DYto2L_FlashSim:
   split_jet_components: true
@@ -91,7 +94,10 @@ DYto2L_FlashSim:
   color: "kAzure+7"
   color_mplhep: dodgerblue
   datasets:
-    - DYto2L_M_50_amcatnloFXFX_Flashsim
+    # Commentato il 16/09/2026: questo dataset non e' in skim_cfg.yaml del 2025
+    # e non ha directory di skim, quindi la campagna lo attendeva per sempre e
+    # bloccava hadd/merge-syst. Riattivare quando lo skim esiste.
+    # - DYto2L_M_50_amcatnloFXFX_Flashsim
 
 DYto2Mu_minnlo:
   split_jet_components: true

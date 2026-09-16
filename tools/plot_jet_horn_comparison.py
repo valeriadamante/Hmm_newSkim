@@ -13,7 +13,9 @@ import numpy as np
 import uproot
 
 import common.utilities as utilities
-from common.utilities import findBinEntry, findNewBins, getNewBins
+from common.utilities import (
+    findBinEntry, findNewBins, getNewBins, groups_for_region, load_routing,
+)
 
 
 DEFAULT_BASE = Path("/eos/user/v/vdamante/H_mumu/campaigns/JetHornVetoComparison")
@@ -113,6 +115,31 @@ def configured_rebinning(
     return [float(edge) for edge in getNewBins(bins)]
 
 
+# Il DY da confrontare dipende dalla regione in massa, esattamente come nella
+# produzione: 105-160 in Signal_Fit e H_sideband, inclusivo nelle sidebands.
+# Cosi' le regioni che non usano il DY inclusivo si possono plottare anche
+# quando quello inclusivo non e' ancora pronto.
+DY_PROCESS_BY_GROUP = {
+    "DY_amcatnlo": "DY",
+    "DY_amcatnlo_105_160": "DYto2Mu_MLL105To160",
+}
+
+
+def dy_file_name(era: str, region: str, override: str | None = None) -> str:
+    if override:
+        return override if override.endswith(".root") else override + ".root"
+    routing = load_routing(REPOSITORY / "config/histogram_sample_routing.yaml")
+    mass_region = region.rsplit("_", 1)[0] if region.count("_") else region
+    for candidate in ("Signal_Fit", "H_sideband", "Z_sideband", "mass_inclusive"):
+        if region.startswith(candidate):
+            mass_region = candidate
+            break
+    for group in groups_for_region(routing, f"Run3_{era}", mass_region):
+        if group in DY_PROCESS_BY_GROUP:
+            return DY_PROCESS_BY_GROUP[group] + ".root"
+    raise RuntimeError(f"No DY group routed to {mass_region} in Run3_{era}")
+
+
 def plot_one(
     base: Path, output: Path, key: str,
     campaigns: tuple[tuple[str, str, str], ...],
@@ -120,20 +147,25 @@ def plot_one(
     normalize_to_reference_data: bool = False,
     normalize_dy_to_data: bool = False,
     comparison: str = "2025-horn",
+    dy_process: str | None = None,
 ) -> None:
     region, variable = key.rsplit("/", 1)
+    era = "2026" if comparison.startswith("2026") else "2025"
+    dy_name = dy_file_name(era, region, dy_process)
     desired_binning = (
         configured_rebinning(histogram_config, variable, region)
         if histogram_config is not None else None
     )
     payload = []
-    for label, relative, color in campaigns:
+    for entry in campaigns:
+        label, relative, color = entry[:3]
+        name = entry[3] if len(entry) > 3 else dy_name
         folder = base / relative
         data = rebin_histogram(
             read_histogram(folder / "Data_Muon.root", key), desired_binning
         )
         dy = rebin_histogram(
-            read_histogram(folder / "DY.root", key), desired_binning
+            read_histogram(folder / name, key), desired_binning
         )
         if not np.array_equal(data[1], dy[1]):
             raise RuntimeError(f"Data/DY binning mismatch for {label}: {key}")
@@ -283,6 +315,20 @@ def main() -> int:
     parser.add_argument("--base", type=Path, default=DEFAULT_BASE)
     parser.add_argument("--output", type=Path, default=Path("plots/jet_horn_comparison"))
     parser.add_argument("--region", action="append", help="Only plot this region; repeatable")
+    parser.add_argument(
+        "--dy-compare",
+        help="Overlay two DY processes from one variant instead of the two horn "
+             "variants, e.g. 'DYto2Mu_MLL105To160,DY'",
+    )
+    parser.add_argument(
+        "--variant", default="WithHornVeto",
+        help="Variant directory used by --dy-compare (default: WithHornVeto)",
+    )
+    parser.add_argument(
+        "--dy-process",
+        help="Force one DY process file for every region; default: the routed one "
+             "(DYto2Mu_MLL105To160 in Signal_Fit/H_sideband, DY in the sidebands)",
+    )
     parser.add_argument("--variable", action="append", help="Only plot this variable; repeatable")
     parser.add_argument(
         "--include-2024", action="store_true",
@@ -322,16 +368,49 @@ def main() -> int:
         campaigns = (CAMPAIGN_2024, CAMPAIGNS_2025[1])
     else:
         campaigns = CAMPAIGNS_2026
-    files = [
-        args.base / relative / sample
-        for _, relative, _ in campaigns
-        for sample in ("Data_Muon.root", "DY.root")
-    ]
-    missing = [path for path in files if not path.is_file()]
+    era = "2026" if comparison.startswith("2026") else "2025"
+    if args.dy_compare:
+        # Due campioni DY nella stessa variante: stessi dati, stesse selezioni,
+        # cambia solo il campione simulato.
+        processes = [x.strip() for x in args.dy_compare.split(",") if x.strip()]
+        if len(processes) != 2:
+            raise SystemExit("--dy-compare takes exactly two comma-separated DY processes")
+        relative = f"{args.variant}/Central_hadded/Run3_{era}"
+        colors = ("#e41a1c", "#1746ff")
+        campaigns = tuple(
+            (f"{process} ({args.variant})", relative, color,
+             process if process.endswith(".root") else process + ".root")
+            for process, color in zip(processes, colors)
+        )
+    data_files = [args.base / entry[1] / "Data_Muon.root" for entry in campaigns]
+    missing = [path for path in data_files if not path.is_file()]
     if missing:
         raise FileNotFoundError("Missing required ROOT files:\n" + "\n".join(map(str, missing)))
 
-    keys = set.intersection(*(histogram_keys(path) for path in files))
+    keys = set.intersection(*(histogram_keys(path) for path in data_files))
+
+    # Ogni regione usa il proprio DY: si plottano quelle il cui DY e' pronto e
+    # si riportano le altre, invece di bloccare tutto il confronto.
+    dy_keys: dict[str, set] = {}
+    skipped: dict[str, set] = {}
+    routed = set()
+    for key in sorted(keys):
+        name = (campaigns[0][3] if len(campaigns[0]) > 3
+                else dy_file_name(era, key.rsplit("/", 1)[0], args.dy_process))
+        if name not in dy_keys and name not in skipped:
+            paths = [args.base / entry[1] / (entry[3] if len(entry) > 3 else name)
+                     for entry in campaigns]
+            absent = [path for path in paths if not path.is_file()]
+            if absent:
+                skipped[name] = {str(path) for path in absent}
+            else:
+                dy_keys[name] = set.intersection(*(histogram_keys(path) for path in paths))
+        if name in dy_keys and key in dy_keys[name]:
+            routed.add(key)
+    for name, absent in sorted(skipped.items()):
+        print(f"[SKIP] {name} not available, its regions are not plotted: "
+              + ", ".join(sorted(absent)))
+    keys = routed
     if args.region:
         regions = set(args.region)
         keys = {key for key in keys if key.rsplit("/", 1)[0] in regions}
@@ -353,6 +432,7 @@ def main() -> int:
                 normalize_to_reference_data=args.normalize_to_reference_data,
                 normalize_dy_to_data=args.normalize_dy_to_data,
                 comparison=comparison,
+                dy_process=args.dy_process,
             )
         except KeyError as error:
             print(f"[SKIP] {key}: {error}")

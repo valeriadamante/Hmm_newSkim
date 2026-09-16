@@ -88,11 +88,15 @@ def main():
     parser.add_argument("--output", type=Path, help="JSON con l'esito di ogni chunk.")
     parser.add_argument("--datasets", nargs="*", help="Limita a questi dataset.")
     parser.add_argument("--jobs", type=int, default=16, help="Processi paralleli.")
+    parser.add_argument("--scan", action="store_true",
+                        help="Ignora i manifest e valida tutti i file presenti. Serve per le "
+                             "ere il cui state dir copre solo una parte dei dataset.")
     args = parser.parse_args()
 
     era_dir = args.input / args.era
     directory = str(era_dir)
-    manifests = sorted((args.state_dir / "log" / args.era).glob("*/skim_chunks.json"))
+    manifests = [] if args.scan else sorted(
+        (args.state_dir / "log" / args.era).glob("*/skim_chunks.json"))
     tasks = []
 
     if manifests:
@@ -105,8 +109,9 @@ def main():
     else:
         # Nessun manifest: l'era e' stata prodotta con un'altra state dir. Si
         # valida quello che c'e', senza poter accorgersi di chunk mai scritti.
-        print(f"[WARN] nessun manifest sotto {args.state_dir}/log/{args.era}: "
-              f"valido i file presenti, i chunk mai prodotti non sono rilevabili")
+        if not args.scan:
+            print(f"[WARN] nessun manifest sotto {args.state_dir}/log/{args.era}: "
+                  f"valido i file presenti, i chunk mai prodotti non sono rilevabili")
         if not era_dir.is_dir():
             raise SystemExit(f"[ERROR] {era_dir} non esiste")
         for dataset_dir in sorted(p for p in era_dir.iterdir() if p.is_dir()):

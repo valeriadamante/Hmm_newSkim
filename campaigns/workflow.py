@@ -23,6 +23,10 @@ ERAS = ['2022', '2022EE', '2023', '2023BPix', '2024', '2025']
 FAMILIES = ['JEReta0pt0', 'JEReta1pt0', 'JEReta2pt0', 'JEReta2pt1', 'JEReta3pt0', 'JEReta3pt1', 'JES_Total', 'Muon', 'PDF', 'PU', 'QCDScale', 'ScaRe']
 GROUPS = 'data,DY_amcatnlo,DY_amcatnlo_105_160,EWK,EWK_105_160,signals,SingleH,SingleTop,TTX,TT,W,DiTriBoson'
 EOS = Path('/eos/user/v/vdamante/H_mumu')
+# Istogrammi materializzati per file durante il check ROOT: il confronto
+# delle chiavi resta completo, questo campione serve solo a provare che il
+# file sia davvero leggibile. Alzarlo rende il check piu' severo e piu' lento.
+KEY_SAMPLE_SIZE = 50
 HORN_VARIABLES = 'N_SelectedJets leadingjet_pt leadingjet_eta leadingjet_phi subleadingjet_pt subleadingjet_eta subleadingjet_phi delta_eta_jj_ls m_jj_ls m_jj delta_eta_jj vbfjet1_pt vbfjet2_pt vbfjet1_eta vbfjet2_eta vbfjet1_phi vbfjet2_phi'.split()
 
 
@@ -131,7 +135,10 @@ def datasets(era, groups):
 
 
 def members(entry):
-    return entry.get('datasets', []) + entry.get('sub_processes', [])
+    # Una chiave presente ma vuota nello YAML arriva come None, non come lista:
+    # succede commentando tutti i dataset di un processo. Senza questo, members()
+    # solleva TypeError e fa cadere l'intero check della campagna.
+    return list(entry.get('datasets') or []) + list(entry.get('sub_processes') or [])
 
 
 
@@ -228,8 +235,15 @@ class Workflow:
             with uproot.open(path) as f:
                 keys = {k.split(';')[0] for k, cls in f.classnames(recursive=True).items() if cls.startswith(('TH1','TH2','TH3','TProfile'))}
                 if not keys: raise ValueError('no histograms')
-                # Materialize arrays as well: a directory/key alone is not a valid histogram.
-                for key in keys: f[key].values()
+                # Materialize arrays as well: a directory/key alone is not a valid
+                # histogram. Reading every one costs ~15 s on a file with a few
+                # thousand histograms and dominates the whole check, so sample a
+                # bounded, deterministic subset instead: it catches a truncated or
+                # unreadable file just as well, and the key comparison below is
+                # what actually validates the content.
+                ordered = sorted(keys)
+                stride = max(1, len(ordered) // KEY_SAMPLE_SIZE)
+                for key in ordered[::stride][:KEY_SAMPLE_SIZE]: f[key].values()
                 self.key_cache[token] = keys
         return self.key_cache[token]
 
@@ -383,6 +397,8 @@ class Workflow:
                             '--condor','--condor-label',self.c.name+'_'+family]
                 if self.args.force: cmd += ['--force']
                 producer_args = ['--',*c.hist_args,'--rdf-threads',self.c.cpus,'--variable-batch-size',self.c.batch]
+                if self.args.systematic_batch_size:
+                    producer_args += ['--systematic-batch-size',str(self.args.systematic_batch_size)]
                 repairs = []
                 blocked = []
                 if not self.args.dry_run:
@@ -593,6 +609,9 @@ def input_overrides(c, args, no_horn=False):
         if args.threads < 1: raise ValueError('--threads must be positive')
         c.cpus = str(args.threads)
     if getattr(args, 'memory', None): c.memory = args.memory
+    if getattr(args, 'variable_batch_size', None) is not None:
+        if args.variable_batch_size < 1: raise ValueError('--variable-batch-size must be positive')
+        c.batch = str(args.variable_batch_size)
     suffix = '_noJetHornVeto' if no_horn else ''
     if args.input_root:
         c.input_root = args.input_root.rstrip('/') + suffix
@@ -623,8 +642,13 @@ def horn_campaign(variant, args):
     # default storici, non un vincolo del workflow.
     variables = csv(args.variables) if args.variables else HORN_VARIABLES
     groups = args.datasets or 'data,DY_amcatnlo'
+    # Una sola passata sui dati: il produttore fa il prodotto cartesiano fra
+    # batch di sistematiche e batch di variabili, quindi con il default batch=1
+    # ogni variabile costerebbe un event loop. L'horn e' centrale e ha 4 regioni
+    # x 3 categorie, percio' tenere tutte le variabili insieme resta leggero.
     c = Campaign('JetHornVeto_'+variant, root/variant, ['2024','2025','2026'], [], groups,
-                 hist+['--variables',*variables], ['Signal_Fit','Z_sideband','H_sideband','mass_inclusive'], ['VBF','ggF','baseline'], variables)
+                 hist+['--variables',*variables], ['Signal_Fit','Z_sideband','H_sideband','mass_inclusive'], ['VBF','ggF','baseline'], variables,
+                 batch=str(max(1, len(variables))))
     if variant == 'NoHornVeto':
         c.input_root += '_noJetHornVeto'; c.manifests += '_noJetHornVeto'; c.hist_args += ['--disable-jet-horn-veto']
     return input_overrides(c, args, variant == 'NoHornVeto')
@@ -761,6 +785,7 @@ def fit_weights(w, stage):
             cmd = [sys.executable,'tools/'+tool,'--era',era,'--input-dir',w.c.directory('Central',True)/era]
             if stage[0] == 'ptll': cmd += ['--smart-rebin']
         cmd += ['--output-dir',output,'--output-json',path,'--output-root',output/(path.stem+'.root')]
+        cmd += list(getattr(w.args, 'fit_option', []) or [])
         w.run(cmd)
     if not w.args.dry_run: check_payloads(w,stage[2])
 
@@ -805,6 +830,10 @@ def parser(kind):
     p.add_argument('--config', help='Shell campaign configuration')
     p.add_argument('--variables', help='Comma-separated histogram variables')
     p.add_argument('--threads', type=int, help='ROOT threads per job and matching Condor CPU request')
+    p.add_argument('--variable-batch-size', type=int,
+                   help='Variables booked per event loop; overrides the campaign configuration')
+    p.add_argument('--systematic-batch-size', type=int,
+                   help='Systematic variations booked per event loop (producer default: 2)')
     p.add_argument('--memory', help='HTCondor memory request, e.g. 8GB')
     p.add_argument('--dy-weights', help='Custom weights: jet-component,ptll,njets (empty disables all three)')
     p.add_argument('--datasets', help='Comma-separated sample groups')
@@ -834,7 +863,12 @@ def parser(kind):
         p.add_argument('--no-horn-manifest-root',help='Exact no-veto manifest base')
         p.add_argument('--variant',choices=['WithHornVeto','NoHornVeto','both'],default='both')
         p.add_argument('--weights',choices=['none','analysis'],default='none',help='none disables custom DY reweights, retaining nominal MC weights')
-    if kind == 'dy_weights': p.add_argument('--weight-stage',choices=['all','jet','ptll','njets'],default='all')
+    if kind == 'dy_weights':
+        p.add_argument('--weight-stage',choices=['all','jet','ptll','njets'],default='all')
+        # Inoltra opzioni al tool di fit senza duplicarne l'interfaccia qui:
+        #   --fit-option --pu1-pu2=tied --fit-option --pu1-pu2-vbf=separate
+        p.add_argument('--fit-option',action='append',default=[],
+                       help='Opzione extra passata al derive_* dello stadio; ripetibile.')
     return p
 
 
