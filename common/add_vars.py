@@ -470,20 +470,42 @@ def GetAllMuonsObservablesNew(df):
             )
 
     columns = _column_names(df)
-    has_no_corr_pts = all(
-        f"mu{mu_idx}_pt_noCorr" in columns for mu_idx in [1, 2]
+    # skim_v4 non ha mu<i>_pt_noCorr: conserva le due varianti separate,
+    # mu<i>_pt_FSR_noCorr (con recupero FSR) e mu<i>_pt_raw_noCorr (senza).
+    # Il nominale m_mumu e' quello con FSR -- lo dicono le sue sole varianti
+    # sistematiche, m_mumu_FSR_* -- quindi il confronto "senza correzione" che
+    # ha senso e' con la variante FSR: isola l'effetto della correzione di
+    # scala/risoluzione e non quello del recupero FSR. Prima il blocco veniva
+    # semplicemente saltato e m_mumu_noCorr restava un istogramma vuoto.
+    no_corr_suffix = next(
+        (
+            suffix
+            for suffix in ("_noCorr", "_FSR_noCorr", "_raw_noCorr")
+            if all(f"mu{mu_idx}_pt{suffix}" in columns for mu_idx in [1, 2])
+        ),
+        None,
     )
 
-    if has_no_corr_pts:
+    if no_corr_suffix is not None:
         for mu_idx in [1, 2]:
             p4_name = f"mu{mu_idx}_p4_noCorr"
+            # eta e phi seguono la stessa variante del pT quando esistono,
+            # altrimenti restano quelli nominali: cambia solo il pT.
+            angles = {
+                axis: (
+                    f"mu{mu_idx}_{axis}{no_corr_suffix}"
+                    if f"mu{mu_idx}_{axis}{no_corr_suffix}" in columns
+                    else f"mu{mu_idx}_{axis}"
+                )
+                for axis in ("eta", "phi")
+            }
             if p4_name not in columns:
                 df = df.Define(
                     p4_name,
                     (
                         f"ROOT::Math::LorentzVector<ROOT::Math::PtEtaPhiM4D<double>>"
-                        f"(mu{mu_idx}_pt_noCorr, mu{mu_idx}_eta, "
-                        f"mu{mu_idx}_phi, mu{mu_idx}_mass)"
+                        f"(mu{mu_idx}_pt{no_corr_suffix}, {angles['eta']}, "
+                        f"{angles['phi']}, mu{mu_idx}_mass)"
                     ),
                 )
                 columns.add(p4_name)

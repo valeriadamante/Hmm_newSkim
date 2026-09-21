@@ -64,8 +64,16 @@ def process_from_dataset(process_cfg, dataset_name):
     Iterates over process_names.yaml to find which process a dataset name belongs to.
     """
     for process, entry in process_cfg.items():
-        datasets_list = entry.get("datasets", [])
-        datasets_list.extend(entry.get("sub_processes", []))
+        if not isinstance(entry, dict):
+            continue
+        # Un processo con tutti i dataset commentati lascia "datasets:" a None,
+        # non a lista vuota: senza questa guardia .extend esplodeva con
+        # AttributeError e fermava il produttore su qualunque dataset che
+        # venisse dopo nel file. Ed e' una lista nuova, non quella della
+        # configurazione: extend() sull'originale ci appiccicava dentro i
+        # sub_processes, sporcando la config condivisa a ogni chiamata.
+        datasets_list = list(entry.get("datasets") or [])
+        datasets_list += list(entry.get("sub_processes") or [])
         if dataset_name in datasets_list:
             return process
     return None

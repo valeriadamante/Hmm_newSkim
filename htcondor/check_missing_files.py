@@ -102,8 +102,10 @@ all_datasets = []
 all_datasets.extend(datasets_whitelist)
 
 for process in process_to_select:
-    all_datasets.extend(processes_cfg[process].get("datasets", []))
-    all_datasets.extend(processes_cfg[process].get("sub_processes", []))
+    # "or []": vedi condorsubmit.py, una lista di dataset tutta commentata
+    # arriva come None e faceva esplodere extend().
+    all_datasets.extend(processes_cfg[process].get("datasets") or [])
+    all_datasets.extend(processes_cfg[process].get("sub_processes") or [])
 
 all_datasets = list(OrderedDict.fromkeys(all_datasets))
 

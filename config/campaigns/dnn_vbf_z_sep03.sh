@@ -31,9 +31,9 @@ HIST_ARGS=(
   --dy-njets-reweight
 )
 
-ROOT_INPUT="/eos/cms/store/group/phys_higgs/cmshmm/vdamante/skim_v3"
+ROOT_INPUT="/eos/cms/store/group/phys_higgs/cmshmm/vdamante/skim_v4"
 JSON_INPUT="$ROOT_INPUT"
-MANIFEST_INPUT="/eos/user/v/vdamante/H_mumu/manifests_skim_v3"
+MANIFEST_INPUT="/eos/user/v/vdamante/H_mumu/manifests_skim_v4"
 
 # Continue the existing Sep_03 production; CLI options can override these defaults.
 # Default dal 16/09/2026: JES nelle 11 famiglie regrouped, come all_variables.

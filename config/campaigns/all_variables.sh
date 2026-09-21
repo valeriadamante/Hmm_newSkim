@@ -13,8 +13,18 @@ RDF_THREADS=4
 # e su DYto2L_M_50 i 4 loop in piu' costavano ~35 min su 2h16.
 VARIABLE_BATCH_SIZE=100
 SYSTEMATICS=(Central JEReta0pt0 JEReta1pt0 JEReta2pt0 JEReta2pt1 JEReta3pt0 JEReta3pt1 JES_Total Muon PDF PU QCDScale ScaRe)
-ROOT_INPUT="/eos/cms/store/group/phys_higgs/cmshmm/vdamante/skim_v3"
+ROOT_INPUT="/eos/cms/store/group/phys_higgs/cmshmm/vdamante/skim_v4"
 JSON_INPUT="$ROOT_INPUT"
-MANIFEST_INPUT="/eos/user/v/vdamante/H_mumu/manifests_skim_v3"
-HIST_ARGS=(--mass-regions all --categories all --pu-hard-jet-components
+MANIFEST_INPUT="/eos/user/v/vdamante/H_mumu/manifests_skim_v4"
+# Tutte le mass region, ma solo le categorie che servono all'analisi.
+# '--categories all' prendeva ogni voce store:true della selections.yaml
+# dell'era, quindi un insieme diverso da un'era all'altra: 13 nel 2024, 17 nel
+# 2025, 19 nel 2026, con dentro base_sel, i same-sign, le _Z_ e le lowPtTT che
+# non entrano in nessun plot. Qui l'elenco e' esplicito e identico ovunque:
+# baseline, ggF, VBF piu' le molteplicita' di jet che servono alla scomposizione
+# in componenti. VBF_def resta definita come colonna perche' VBF e ggF la
+# usano, ma non produce piu' istogrammi per conto suo.
+HIST_ARGS=(--mass-regions all
+           --categories baseline ggF VBF ggF_0J ggF_1J ggF_2J ggF_ge2J VBF_ge2J
+           --pu-hard-jet-components
            --dy-jet-component-reweight --dy-ptll-reweight --dy-njets-reweight)

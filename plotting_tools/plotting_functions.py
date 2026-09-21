@@ -241,6 +241,10 @@ def get_blind_range_for_category(hist_cfg, category):
 
     if isinstance(blind_range, dict):
         category_range = blind_range.get(category, None)
+        # Eta subregions inherit the blinding of their parent VBF region.
+        parent, separator, eta_region = category.partition("/")
+        if category not in blind_range and separator and parent.endswith("_VBF") and eta_region in {"incl", "CC", "CF", "FF"}:
+            category_range = blind_range.get(parent, None)
 
         if category_range is None:
             return None
@@ -370,10 +374,10 @@ def set_ratio_axis_range(
         ]
         positive = [values for values in positive if values.size]
         if positive:
-            ymin = max(min(float(np.min(values)) for values in positive) / 1.25, 1e-3)
-            ymax = max(max(float(np.max(values)) for values in positive) * 1.25, 1.1)
+            ymin = max(min(float(np.min(values)) for values in positive) / 1.25, 0.5)# 1e-3)
+            ymax = max(max(float(np.max(values)) for values in positive) * 1.25, 1.5)
         else:
-            ymin, ymax = 0.1, 10.0
+            ymin, ymax = 0.1, 2.0
         rax.set_yscale("log")
         rax.set_ylim(ymin, ymax)
         rax.yaxis.set_major_locator(mticker.LogLocator(base=10.0))
@@ -393,15 +397,39 @@ def set_ratio_axis_range(
         for values in (np.asarray(array) for array in arrays)
     ]
     finite = [values for values in finite if values.size]
-    max_deviation = max(
-        (float(np.max(np.abs(values - 1.0))) for values in finite),
-        default=0.05,
-    )
-    # Always centre the panel on unity, with 15% headroom and a modest floor
-    # so nearly identical curves are still readable.
-    half_range = max(1.15 * max_deviation, 0.10)
-    rax.set_ylim(1.0 - half_range, 1.0 + half_range)
+    # [0.5, 1.5] e' la finestra di riferimento: finche' il rapporto ci sta
+    # dentro si usa quella, cosi' plot diversi restano confrontabili a colpo
+    # d'occhio e la scala non cambia da una variabile all'altra. Appena qualcosa
+    # esce, la finestra si apre sul minimo e sul massimo effettivi con un
+    # margine, altrimenti i punti fuori scala sparirebbero dal pannello.
+    # Il test di contenimento guarda i punti Data/MC, non le bande: la banda di
+    # incertezza puo' sporgere oltre 1.5 anche quando tutti i punti ci stanno,
+    # e in quel caso aprire la finestra non serve a niente. Se invece si apre,
+    # si apre su tutto, bande comprese, altrimenti le taglierebbe.
+    points = [values[np.isfinite(values)]
+              for values in (np.asarray(array) for array in ratio_arrays)]
+    points = [values for values in points if values.size]
+    if points:
+        marks = np.concatenate(points)
+        point_low, point_high = float(np.min(marks)), float(np.max(marks))
+    else:
+        point_low, point_high = 1.0, 1.0
+    if finite:
+        values = np.concatenate(finite)
+        low, high = float(np.min(values)), float(np.max(values))
+    else:
+        low, high = 1.0, 1.0
+    if point_low >= 0.5 and point_high <= 1.5:
+        ymin, ymax = 0.5, 1.5
+    else:
+        margin = max(0.10 * (high - low), 0.02)
+        ymin, ymax = low - margin, high + margin
+        # L'unita' e' il riferimento del rapporto: va tenuta nel pannello anche
+        # quando tutti i punti stanno da una parte sola.
+        ymin, ymax = min(ymin, 1.0 - margin), max(ymax, 1.0 + margin)
+    rax.set_ylim(ymin, ymax)
     rax.yaxis.set_major_locator(mticker.MaxNLocator(nbins=5))
+    half_range = 0.5 * (ymax - ymin)
     decimals = 3 if half_range < 0.05 else 2 if half_range < 0.5 else 1
     rax.yaxis.set_major_formatter(mticker.FormatStrFormatter(f"%.{decimals}f"))
     rax.grid(axis="y", which="major", linestyle=":", linewidth=0.6, alpha=0.5)
@@ -500,13 +528,13 @@ def _hist_content(th1, bin_edges):
     """
     n_bins = len(bin_edges) - 1
     out = np.zeros(n_bins, dtype=float)
-    
+
     for i, (lo, hi) in enumerate(zip(bin_edges[:-1], bin_edges[1:])):
         # find the ROOT bin whose low edge matches
         mid = 0.5 * (lo + hi)
         root_bin = th1.FindBin(mid)
         out[i] = th1.GetBinContent(root_bin)
-    
+
     return out
 
 
@@ -1876,7 +1904,7 @@ def make_stacked_plot(
         "H_sideband_VBF/incl": "VBF H sideband",
         "H_sideband_VBF/CC": "VBF H sideband CC",
         "H_sideband_VBF/CF": "VBF H sideband CF",
-        "H_sideband_VBF/FF": "VBF H sideband FF",           
+        "H_sideband_VBF/FF": "VBF H sideband FF",
     }
 
     lumi_val = config_page.get("lumi_text", {}).get("text", "1.0")

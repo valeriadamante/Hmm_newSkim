@@ -717,9 +717,11 @@ else:
 
 if process_to_select and not args.datasets:
     for process in process_to_select:
-        datasets = processes_cfg[process].get("datasets", [])
-        subprocesses = processes_cfg[process].get("sub_processes", [])
-        all_datasets.extend(datasets + subprocesses)
+        # "or []": un processo con tutti i dataset commentati lascia la chiave
+        # a None, non a lista vuota, e la somma esplodeva con TypeError.
+        datasets = processes_cfg[process].get("datasets") or []
+        subprocesses = processes_cfg[process].get("sub_processes") or []
+        all_datasets.extend(list(datasets) + list(subprocesses))
 
 all_datasets = list(dict.fromkeys(all_datasets))
 

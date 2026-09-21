@@ -55,8 +55,8 @@ class Campaign:
     categories: list[str]
     variables: list[str]
     source: str = ''
-    input_root: str = '/eos/cms/store/group/phys_higgs/cmshmm/vdamante/skim_v3'
-    manifests: str = '/eos/user/v/vdamante/H_mumu/manifests_skim_v3'
+    input_root: str = '/eos/cms/store/group/phys_higgs/cmshmm/vdamante/skim_v4'
+    manifests: str = '/eos/user/v/vdamante/H_mumu/manifests_skim_v4'
     cpus: str = '4'
     memory: str = '8GB'
     batch: str = '1'
@@ -441,6 +441,30 @@ class Workflow:
         if unavailable:
             raise Incomplete(f'Submitted available inputs; {len(set(unavailable))} dataset manifests unavailable')
 
+    def prune_hadded(self, family, era):
+        """Cancella gli hadd inservibili, prima di riprendere con --missing-only.
+
+        --missing-only guarda solo se il file esiste. Un hadd interrotto a meta'
+        -- una sessione chiusa, un OOM -- lascia un file troncato che esiste, e
+        verrebbe tenuto per buono. Qui si tolgono di mezzo i vuoti, gli stantii
+        rispetto ai loro input e, con --check-level root, gli illeggibili.
+        """
+        removed = 0
+        for path, inputs in hadded_products(self.c, era, family).items():
+            if not path.is_file(): continue
+            bad = path.stat().st_size == 0
+            if not bad and inputs:
+                try: bad = path.stat().st_mtime_ns < max(x.stat().st_mtime_ns for x in inputs if x.is_file())
+                except ValueError: pass
+            if not bad and self.args.check_level == 'root':
+                try: self.keys(path)
+                except Exception: bad = True
+            if bad:
+                print(f'[RESUME] rimuovo {path.name}: incompleto o stantio', flush=True)
+                if not self.args.dry_run: path.unlink()
+                removed += 1
+        if removed: print(f'[RESUME] {family}/{era}: {removed} hadd da rifare', flush=True)
+
     def hadd(self):
         if not self.args.dry_run: self.check('histograms')
         for family in self.selected:
@@ -452,6 +476,9 @@ class Workflow:
                        '--output-dir', c.directory(family, True)/era, '--era', era,
                        '--datasets', ','.join(datasets(era, groups))]
                 if family == 'Central' and self.c.families: cmd += ['--add-derived-systs']
+                if self.args.missing_only:
+                    self.prune_hadded(family, era)
+                    cmd += ['--missing-only']
                 self.run(cmd)
         if not self.args.dry_run: self.check('hadded')
 
@@ -494,9 +521,16 @@ class Workflow:
             selected_configs = [for_era(self.c,e) for e in self.eras] if self.args.merged else [for_era(self.c,era)]
             regions = list(dict.fromkeys(r for c in selected_configs for r in c.regions))
             categories = list(dict.fromkeys(r for c in selected_configs for r in c.categories))
+            # Le campagne dichiarano ogni regione/categoria che producono, che per
+            # all_variables sono 19 categorie: quasi tutte sono di controllo e non
+            # servono a mostrare un risultato. --plot-regions/--plot-categories
+            # restringono il disegno senza toccare la produzione.
+            if self.args.plot_regions: regions = csv(self.args.plot_regions)
+            if self.args.plot_categories: categories = csv(self.args.plot_categories)
             cmd = ['bash','plotting_tools/plot_all_regions.sh','--era',era,'--input-root',source,
                    '--output',Path(self.args.plot_output or 'plots/campaigns')/self.c.name/era,
-                   '--regions',','.join(regions),'--categories',','.join(categories),'--no-component-composition']
+                   '--regions',','.join(regions),'--categories',','.join(categories),
+                   '--component-composition' if self.args.component_composition else '--no-component-composition']
             if self.args.merged: cmd += ['--plot-option','--combined-eras','--plot-option',','.join(self.eras)]
             if self.c.variables: cmd += ['--variables',','.join(self.c.variables)]
             if self.args.mode != 'central': cmd += ['--plot-option','--systematics','--plot-option','--totalSystematics']
@@ -853,10 +887,16 @@ def parser(kind):
     p.add_argument('--manifest-root',help='Override manifest base; regenerate with validate when changing skims')
     p.add_argument('--output-root','--output-dir',help='Override campaign output root (weights: parent of jet/ptll/njets)')
     p.add_argument('--plot-output')
+    p.add_argument('--plot-regions', help='Regioni da disegnare; default: quelle della campagna')
+    p.add_argument('--plot-categories', help='Categorie da disegnare; default: quelle della campagna')
+    p.add_argument('--component-composition', action='store_true',
+                   help='Aggiunge sotto ogni plot la scomposizione in componenti di jet (0J, 1J_Hard/PU, 2J_Hard/PU1/PU2) di DY, EWK e segnale')
     p.add_argument('--regions',help='Override mass regions (comma-separated)')
     p.add_argument('--categories',help='Override categories (comma-separated)')
     p.add_argument('--dry-run',action='store_true',help='Print commands only; do not certify inputs or write/submit anything')
     p.add_argument('--force',action='store_true',help='Force histogram regeneration, including existing invalid/partial outputs')
+    p.add_argument('--missing-only',action='store_true',
+                   help='hadd: riprende saltando gli output gia\' buoni. Prima cancella quelli vuoti, stantii o (con --check-level root) illeggibili, cosi\' un hadd interrotto non resta troncato')
     if kind == 'jet_horn_veto':
         p.add_argument('--no-horn-input-root',help='Exact no-veto ROOT base, overriding the automatic suffix')
         p.add_argument('--no-horn-json-root',help='Exact no-veto bookkeeping JSON base')

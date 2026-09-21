@@ -59,7 +59,7 @@ def apply_hist_config(args: argparse.Namespace, era: str) -> argparse.Namespace:
     )
     defaults = {
         "datasets": "skim_cfg",
-        "input_folder": cfg.get("output_dir", "skim_v3"),
+        "input_folder": cfg.get("output_dir", "skim_v4"),
         "output_dir": configured_output,
         "chunk_size": cfg.get("chunk_size", 1),
         "file_open_retries": 3,

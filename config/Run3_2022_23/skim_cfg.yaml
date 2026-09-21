@@ -7,7 +7,7 @@ target_chunk_size_gb: 5.0
 max_files_per_chunk: 5
 max_files: -1        # -1 = all files
 
-output_dir: /eos/cms/store/group/phys_higgs/cmshmm/vdamante/skim_v3/
+output_dir: /eos/cms/store/group/phys_higgs/cmshmm/vdamante/skim_v4/
 histogram_output_dir: /eos/user/v/vdamante/H_mumu/Hists_DNN_erabased
 histogram_systematics_output_dir: /eos/user/v/vdamante/H_mumu/Hists_DNN_erabased_systematics
 

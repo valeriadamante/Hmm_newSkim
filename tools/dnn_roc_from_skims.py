@@ -71,6 +71,15 @@ def datasets_for_processes(era: str, processes: list[str]) -> dict[str, list[str
     return resolved
 
 
+def _make_vector(paths):
+    """std::vector<string> per i costruttori di RDataFrame."""
+    import ROOT
+
+    vector = ROOT.std.vector("string")()
+    for path in paths:
+        vector.push_back(str(path))
+    return vector
+
 def read_dataset(
     dataset: str,
     *,
@@ -81,8 +90,18 @@ def read_dataset(
     samples_cfg,
     selection_expression: str,
     dy_weights: frozenset[str],
+    max_files: int = 0,
 ) -> tuple[np.ndarray, np.ndarray]:
-    """Return (DNN score, weight__Central) for one skim dataset."""
+    """Return (DNN score, weight__Central) for one skim dataset.
+
+    With max_files > 0 only an evenly-spaced subset of the dataset's ROOT files
+    is read and the weights are scaled by n_all/n_used.  The per-event weight
+    comes from the generator normalization in the reports, which is global and
+    does not depend on how many files are opened, so the rescaled yields stay
+    unbiased and the ROC -- which only depends on the score/weight pairs -- is
+    unchanged up to the statistics actually read.  The stride spans the whole
+    dataset rather than taking the first files, so no run range is favoured.
+    """
     from common.dnn_application import clear_prediction_registry
     from common.prepare_rdf import prepare_rdf
 
@@ -92,6 +111,17 @@ def read_dataset(
     root_files = sorted(list_root_files(str(dataset_dir)))
     if not root_files:
         raise FileNotFoundError(f"No ROOT files under {dataset_dir}")
+    weight_scale = 1.0
+    if max_files and len(root_files) > max_files:
+        stride = len(root_files) / max_files
+        picked = sorted({int(index * stride) for index in range(max_files)})
+        weight_scale = len(root_files) / len(picked)
+        print(
+            f"    {dataset}: subset {len(picked)}/{len(root_files)} file, "
+            f"pesi x{weight_scale:.3g}",
+            flush=True,
+        )
+        root_files = [root_files[index] for index in picked]
 
     sample_info = samples_cfg.get(dataset)
     if sample_info is None:
@@ -110,6 +140,15 @@ def read_dataset(
     seg_dict = get_segmentation_dict(report_files)
     if not seg_dict:
         raise RuntimeError(f"Empty generator normalization for {dataset}")
+
+    # Un dataset i cui file non contengono alcun evento non ha nemmeno le
+    # colonne dei pesi, e prepare_rdf muore nel JIT con "use of undeclared
+    # identifier 'genWeight'", portandosi dietro l'intera run multi-era.
+    # Saltarlo e' corretto: non contribuisce ne' alla ROC ne' alle rese.
+    import ROOT as _ROOT
+    if _ROOT.RDataFrame("Events", _make_vector(root_files)).Count().GetValue() == 0:
+        print(f"    {dataset}: 0 entries nei file, salto", flush=True)
+        return np.empty(0, dtype=np.float64), np.empty(0, dtype=np.float64)
 
     started = time.perf_counter()
     prepared = prepare_rdf(
@@ -134,6 +173,8 @@ def read_dataset(
     )
     scores = np.asarray(columns["DNN_NNOutput"], dtype=np.float64)
     weights = np.asarray(columns["weight__Central"], dtype=np.float64)
+    if weight_scale != 1.0:
+        weights = weights * weight_scale
     clear_prediction_registry()
     print(
         f"    {dataset}: {scores.size} events, "
@@ -344,6 +385,17 @@ def parse_arguments() -> argparse.Namespace:
         "--threads", type=int, default=4, help="RDataFrame worker threads (default: 4)."
     )
     parser.add_argument(
+        "--max-files-per-dataset",
+        type=int,
+        default=0,
+        help=(
+            "Read at most this many ROOT files per MC dataset, evenly spaced over "
+            "the whole dataset, and scale the weights by n_all/n_used. 0 reads "
+            "everything. Cuts memory and wall time roughly proportionally; the "
+            "ROC shape is unchanged, only its statistical precision drops."
+        ),
+    )
+    parser.add_argument(
         "--no-region-sample-routing",
         dest="region_sample_routing",
         action="store_false",
@@ -418,6 +470,7 @@ def main() -> int:
                             samples_cfg=samples_cfg,
                             selection_expression=selection_expression,
                             dy_weights=dy_weights,
+                            max_files=args.max_files_per_dataset,
                         )
                     )
 
@@ -496,12 +549,18 @@ def main() -> int:
         "signal_processes": wanted_signal,
         "background_processes": wanted_background,
         "region_sample_routing": args.region_sample_routing,
+        "max_files_per_dataset": args.max_files_per_dataset,
         "notes": {
             "unweighted": (
                 "ROC on raw event counts. best_significance is entries-based "
                 "and is not a physics sensitivity."
             ),
             "weighted": "weight__Central, i.e. expected yields.",
+            "subset": (
+                "max_files_per_dataset > 0 means only that many evenly spaced "
+                "ROOT files per dataset were read, with weights scaled by "
+                "n_all/n_used: yields stay unbiased, statistical precision drops."
+            ),
         },
         "combined_curves": {
             label: thinned(result) for label, result in combined.items()

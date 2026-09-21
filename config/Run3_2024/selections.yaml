@@ -137,6 +137,13 @@ categories:
     expression: "base_sel_SS{tot_suff} && mu1_ML{mu_suff} && mu2_ML{mu_suff} && pt_lessthan30_and_TT{mu_suff}"
     store: True
 
+  # Era l'unica era in cui mancava, pur avendo gia' chi2_sel: le altre sei la
+  # definiscono tutte cosi', e la sua assenza faceva fallire qualunque comando
+  # che passasse la lista di categorie di un'altra era.
+  baseline_chi2:
+    expression: "baseline{tot_suff} && chi2_sel{mu_suff}"
+    store: True
+
   # Definizione VBF senza alcuna logica nascosta nel C++
   VBF_def:
     expression: "HasVBF{jet_suff} && SelectedJet_pt{jet_suff}[VBFJetIdx_1{jet_suff}] >= 35 && SelectedJet_pt{jet_suff}[VBFJetIdx_2{jet_suff}] >= 25"
