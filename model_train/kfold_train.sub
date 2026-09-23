@@ -1,0 +1,23 @@
+universe        = vanilla
+executable      = train_fold.sh
+arguments = \
+    /eos/user/a/ayeagle/H_mumu/results/VBFNet_condor/Run2/ \
+    $(FOLD) \
+    /eos/user/a/ayeagle/H_mumu/parsed_tuples/skim_V3_mk2_VBFNet/vbfnet_train_sample_mk2.pkl \
+    /afs/cern.ch/user/a/ayeagle/Hmm_newSkim_Integration/model_train/config_VBF.toml
+
+transfer_input_files = \
+    /afs/cern.ch/user/a/ayeagle/Hmm_newSkim_Integration/model_train/main_condor.py, \
+    /afs/cern.ch/user/a/ayeagle/Hmm_newSkim_Integration/model_train/model_generation, \
+    /afs/cern.ch/user/a/ayeagle/Hmm_newSkim_Integration/model_train/config_VBF.toml, \
+    /afs/cern.ch/user/a/ayeagle/Hmm_newSkim_Integration/model_train/train_fold.sh
+
+log             = /afs/cern.ch/user/a/ayeagle/Hmm_newSkim_Integration/model_train/condor_logs/log_$(FOLD).log
+output          = /afs/cern.ch/user/a/ayeagle/Hmm_newSkim_Integration/model_train/condor_logs/out_$(FOLD).out
+error           = /afs/cern.ch/user/a/ayeagle/Hmm_newSkim_Integration/model_train/condor_logs/err_$(FOLD).err
+
+request_gpus    = 1
+request_memory  = 26 GB
++JobFlavour = "tomorrow"
+
+queue FOLD in 0 1 2 3
