@@ -84,3 +84,43 @@ python3 sync/python/compare_sync_events.py \
 Exit status is 0 only for identical event multisets. Differences and duplicate
 counts are reported; no event deduplication is performed. Event IDs remain
 integers throughout JSON export, including values above 2**53.
+
+## Compact sync tuple and VBF cutflow
+
+`studies/prepare_tuple_forSync.py` re-reads an existing skim and writes the
+compact sync tuple plus its cutflow. The selections come from
+`config/Run3_2024/selections_sync.yaml`; `--cutflow-key` chooses which
+cumulative step list in that file drives the cutflow, `--selection` the filter
+applied to the output tuple.
+
+```bash
+source env.sh
+SKIM=/eos/cms/store/group/phys_higgs/cmshmm/vdamante/skim_v4/Run3_2024
+python3 studies/prepare_tuple_forSync.py $SKIM/Muon0_Run2024H $SKIM/Muon1_Run2024H \
+  -o /eos/user/v/vdamante/H_mumu/Sync/sync_tuple_Run2024H_VBF_Z_CR_H_SB.root \
+  --selection "VBF && Z_CR_H_SB" --cutflow-key cutflow_vbf_Z_CR_H_SB --threads 12
+```
+
+The steps before `muon_pre_sel_check` are the skim `report_*.json` counts, so
+the cutflow starts from the NanoAOD events before any cut. `cutflow_vbf_Z_CR_H_SB`
+splits `HasVBF` into `vbf_jets_ge2`, `vbf_pair_pt`, `vbf_pair_mjj` and
+`vbf_pair_deta` in the order `FindVBFJets` applies them; `vbf_pair_deta` must
+reproduce `VBF_def` exactly. Steps that the skim already enforces stay in the
+list on purpose and show zero rejected events.
+
+`cutflow_vbf_Z_CR_H_SB_mu2_20` and the `VBF_mu2_20` category repeat the same
+chain with the subleading muon at 20 GeV instead of 26. `VBF_mu2_20` is not
+stored, so the tuple keeps the nominal column set:
+
+```bash
+python3 studies/prepare_tuple_forSync.py $SKIM/Muon0_Run2024H $SKIM/Muon1_Run2024H \
+  -o /eos/user/v/vdamante/H_mumu/Sync/sync_tuple_Run2024H_VBF_Z_CR_H_SB_mu2pt20.root \
+  --selection "VBF_mu2_20 && Z_CR_H_SB" \
+  --cutflow-key cutflow_vbf_Z_CR_H_SB_mu2_20 --threads 12
+```
+
+`studies/compare_cutflow_pisa.py` reconciles our VBF cutflow with the Pisa one.
+It runs on our skim only and takes their numbers from the table hard-coded in
+the file; it writes our cutflow in their step order, the same cutflow with
+their jet and muon definitions, and a bridge that switches the definition
+differences on one at a time.
