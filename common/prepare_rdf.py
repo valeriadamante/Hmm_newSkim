@@ -214,6 +214,7 @@ def GetRdfForDataset(
     qcd_scale_config=None,
     qcd_scale_seg_dicts=None,
     pdf_config=None,
+    vbf_pair_definition=None,
 ):
     """
     Se explicit_files è una lista di file ROOT, RDataFrame caricherà SOLO quei file (chunk).
@@ -278,6 +279,9 @@ def GetRdfForDataset(
     rdf = ROOT.RDataFrame(input_chain)
     if additional_cuts:
         rdf = rdf.Filter(additional_cuts)
+    # Prima di build_rdf: tutto cio' che dipende dalla coppia VBF la segue.
+    from common.vbf_pair_definition import apply_vbf_pair_definition
+    rdf = apply_vbf_pair_definition(rdf, vbf_pair_definition)
     # 4. Applica le definizioni e i pesi (usando il denominatore globale seg_dict)
     rdf_base = build_rdf(
         rdf,
@@ -416,6 +420,7 @@ def prepare_rdf(
     enable_custom_weights=True, reweight_jsons=None,
     split_jet_multiplicity=False, include_vbf_eta_regions=False,
     component_categories=("ggF", "VBF"),
+    vbf_pair_definition=None,
 ):
     """Return an ordered dict of prepared RDFs (empty if no input files).
 
@@ -449,11 +454,13 @@ def prepare_rdf(
         rdf = GetRdfForDataset(
             input_dir=input_dir, explicit_files=input_files,
             additional_cuts=additional_cuts, skip_validation=skip_validation,
-            **build_options,
+            vbf_pair_definition=vbf_pair_definition, **build_options,
         )
     else:
         if additional_cuts:
             rdf = rdf.Filter(additional_cuts)
+        from common.vbf_pair_definition import apply_vbf_pair_definition
+        rdf = apply_vbf_pair_definition(rdf, vbf_pair_definition)
         rdf = build_rdf(rdf, **build_options)
     if rdf is None:
         return {}

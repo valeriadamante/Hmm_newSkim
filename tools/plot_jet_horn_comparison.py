@@ -262,7 +262,7 @@ def plot_one(
         fontsize=18,
     )
     axis.legend(ncol=2, fontsize=11, loc="best")
-    if comparison == "2024-2025":
+    if comparison.startswith("2024-2025"):
         hep.cms.label("Preliminary", data=True, ax=axis, rlabel="13.6 TeV")
         campaign_label = (
             f"2024: {LUMINOSITY_FB['2024']:.1f} fb$^{{-1}}$\n"
@@ -336,7 +336,7 @@ def main() -> int:
     )
     parser.add_argument(
         "--comparison",
-        choices=("2025-horn", "2024-2025", "2026-horn", "2026-nohorn"),
+        choices=("2025-horn", "2024-2025", "2024-2025-horn", "2026-horn", "2026-nohorn"),
         default="2025-horn",
         help="Campaign curves to draw (default: 2025-horn)",
     )
@@ -366,6 +366,9 @@ def main() -> int:
         campaigns = CAMPAIGNS_2025
     elif comparison == "2024-2025":
         campaigns = (CAMPAIGN_2024, CAMPAIGNS_2025[1])
+    elif comparison == "2024-2025-horn":
+        # 2024 (sempre con veto) accanto alle due varianti 2025.
+        campaigns = (CAMPAIGN_2024, *CAMPAIGNS_2025)
     else:
         campaigns = CAMPAIGNS_2026
     era = "2026" if comparison.startswith("2026") else "2025"

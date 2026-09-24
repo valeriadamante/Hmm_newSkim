@@ -33,6 +33,8 @@ def arguments():
     parser.add_argument("--flavour", default="workday")
     parser.add_argument("--max-jobs", type=int, default=None, help="submit at most N jobs (tests)")
     parser.add_argument("--no-submit", action="store_true")
+    parser.add_argument("--dataset", action="append", choices=DATASETS,
+                        help="only these datasets (default: both); repeatable")
     return parser.parse_args()
 
 
@@ -42,7 +44,7 @@ def main():
     log_dir = REPOSITORY / "htcondor" / "special_sync" / args.tag
     log_dir.mkdir(parents=True, exist_ok=True)
     lines = []
-    for dataset in DATASETS:
+    for dataset in args.dataset or DATASETS:
         output_dir = args.output_root / args.tag / dataset
         output_dir.mkdir(parents=True, exist_ok=True)
         files = samples[dataset]["filelist"]
@@ -56,11 +58,13 @@ def main():
                          f"{xrootd(str(output_dir))} {job}")
     if args.max_jobs is not None:
         lines = lines[:args.max_jobs]
-    queue = log_dir / "jobs.txt"
+    # "input" is a Condor submit command (stdin transfer): never use it as a
+    # queue variable, Condor would try to copy the NanoAOD file to the node.
+    queue = log_dir / ("jobs_" + "_".join(args.dataset) + ".txt" if args.dataset else "jobs.txt")
     queue.write_text("\n".join(lines) + "\n")
-    submit = log_dir / "special_sync.sub"
+    submit = queue.with_suffix(".sub")
     submit.write_text(f"""executable = {REPOSITORY}/sync/python/run_special_sync_skim.sh
-arguments = $(proxy) $(repo) $(dataset) $(input) $(outdir) $(job)
+arguments = $(proxy) $(repo) $(dataset) $(nanofile) $(outdir) $(job)
 output = {log_dir}/$(dataset)_$(job).$(ClusterId).$(ProcId).out
 error = {log_dir}/$(dataset)_$(job).$(ClusterId).$(ProcId).err
 log = {log_dir}/special_sync.$(ClusterId).log
@@ -73,7 +77,7 @@ request_disk = 4GB
 max_retries = 2
 MY.SendCredential = true
 batch_name = SpecialSync_{args.tag}
-queue proxy, repo, dataset, input, outdir, job from {queue}
+queue proxy, repo, dataset, nanofile, outdir, job from {queue}
 """)
     print(f"[special-sync] {len(lines)} jobs, submit file {submit}")
     if lines and not args.no_submit:

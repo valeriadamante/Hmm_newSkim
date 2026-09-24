@@ -48,7 +48,7 @@ muons_selection:
     expression: "muon_pre_sel_check{mu_suff} && muons_OS{mu_suff}"
     store: True
   muons_trigger:
-    expression: "( Event_HasTriggerMatching_singleMu{mu_suff} && HLT_IsoMu24 && ( ( mu1_pt{mu_suff} > 26 && mu1_HasTriggerMatching_singleMu{mu_suff}) || (mu2_pt{mu_suff} > 26 && mu2_HasTriggerMatching_singleMu{mu_suff}) ) ) "
+    expression: "( Event_HasTriggerMatching_singleMu{mu_suff} && HLT_IsoMu24 && ( mu1_HasTriggerMatching_singleMu{mu_suff} || mu2_HasTriggerMatching_singleMu{mu_suff} ) ) "
     store: True
   muons_OS_presel_trg:
     expression: "muons_OS_and_presel{mu_suff} && muons_trigger{mu_suff}"

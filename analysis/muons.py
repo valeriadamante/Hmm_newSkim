@@ -113,8 +113,11 @@ def ApplyMuonTriggerMatching(df, trigger_config, apply_filter, want_variations, 
         cols_to_save.append(f"TrigObj_passOnlineCut_{path}")
 
         for suff in syst_suffixes:
-            pt = "pt_FSR_corr" if not suff else f"pt{suff}"
-            muon_p4 = "Muon_p4_FSR_corr" if not suff else f"Muon_p4{suff}"
+            # Trigger matching uses the uncorrected pT (no ScaRe, no FSR) for
+            # the nominal and for every muon variation, so the shifted
+            # matching columns are identical to the nominal ones.
+            pt = "pt_raw_noCorr"
+            muon_p4 = "Muon_p4_raw_noCorr"
             offline_col = f"Muon_passOfflineCut_{path}{suff}"
             matching_col = f"Muon_TriggerMatchingIdx_{path}{suff}"
             evt = f"Event_HasTriggerMatching_{path}{suff}"

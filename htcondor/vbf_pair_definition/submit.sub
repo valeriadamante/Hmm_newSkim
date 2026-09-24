@@ -1,0 +1,13 @@
+universe       = vanilla
+executable     = /afs/cern.ch/work/v/vdamante/Hmm_newSkim/htcondor/vbf_pair_definition/run_era.sh
+arguments      = $(era)
+output         = /afs/cern.ch/work/v/vdamante/Hmm_newSkim/htcondor/vbf_pair_definition/log/$(era).out
+error          = /afs/cern.ch/work/v/vdamante/Hmm_newSkim/htcondor/vbf_pair_definition/log/$(era).err
+log            = /afs/cern.ch/work/v/vdamante/Hmm_newSkim/htcondor/vbf_pair_definition/log/condor.log
+request_cpus   = 4
+request_memory = 32GB
+request_disk   = 4GB
++JobFlavour    = "workday"
+getenv         = True
+batch_name     = vbf_pair_definition
+queue era in (Run3_2024 Run3_2026)

@@ -153,6 +153,8 @@ class DNNApplication:
         "Run3_2023BPix": 3,
         "Run3_2024": 4,
         "Run3_2025": 5,
+        # La DNN non e' allenata sul 2026: si usa il codice del 2025.
+        "Run3_2026": 5,
     }
 
     def __init__(
@@ -185,7 +187,7 @@ class DNNApplication:
             config_name = "vbfnet_configs"
             models_name = "vbfnet_models"
         elif self.model_set == "legacy":
-            if self.era in {"Run3_2024", "Run3_2025"}:
+            if self.era in {"Run3_2024", "Run3_2025", "Run3_2026"}:
                 config_name = "dnn_configs_2024"
                 models_name = "dnn_models_2024"
             else:

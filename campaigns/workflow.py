@@ -683,6 +683,9 @@ def horn_campaign(variant, args):
     c = Campaign('JetHornVeto_'+variant, root/variant, ['2024','2025','2026'], [], groups,
                  hist+['--variables',*variables], ['Signal_Fit','Z_sideband','H_sideband','mass_inclusive'], ['VBF','ggF','baseline'], variables,
                  batch=str(max(1, len(variables))))
+    # Il DY inclusivo anche in Signal_Fit/H_sideband, dove il routing
+    # manderebbe solo DYto2Mu_MLL105To160.
+    if args.dy_all_regions: c.hist_args += ['--no-region-sample-routing']
     if variant == 'NoHornVeto':
         c.input_root += '_noJetHornVeto'; c.manifests += '_noJetHornVeto'; c.hist_args += ['--disable-jet-horn-veto']
     return input_overrides(c, args, variant == 'NoHornVeto')
@@ -902,6 +905,7 @@ def parser(kind):
         p.add_argument('--no-horn-json-root',help='Exact no-veto bookkeeping JSON base')
         p.add_argument('--no-horn-manifest-root',help='Exact no-veto manifest base')
         p.add_argument('--variant',choices=['WithHornVeto','NoHornVeto','both'],default='both')
+        p.add_argument('--dy-all-regions',action='store_true',help='Riempie il DY in tutte le regioni (--no-region-sample-routing)')
         p.add_argument('--weights',choices=['none','analysis'],default='none',help='none disables custom DY reweights, retaining nominal MC weights')
     if kind == 'dy_weights':
         p.add_argument('--weight-stage',choices=['all','jet','ptll','njets'],default='all')

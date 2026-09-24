@@ -728,6 +728,7 @@ def produce_histograms(args_tuple):
             split_jet_multiplicity=args.dy_jet_components,
             include_vbf_eta_regions=args.vbf_eta_regions,
             component_categories=getattr(args, "pu_hard_requested_categories", ("ggF", "VBF")),
+            vbf_pair_definition=args.vbf_pair_definition,
         )
         rdf_base = prepared.get("inclusive")
         profile_log(args.dataset_name, "RDataFrame preparation", rdf_started)
@@ -1090,6 +1091,14 @@ def main(argv=None, *, stage_settings=None):
         "--eta-components",
         action="store_true",
         help="Split VBF and its jet components into incl/CC/CF/FF eta regions.",
+    )
+    parser.add_argument(
+        "--vbf-pair-definition",
+        choices=["maxmjj", "hardest", "leading"],
+        default="maxmjj",
+        help="VBF jet pair: maxmjj (production), hardest (hardest preselected pair "
+             "passing the cuts) or leading (two leading jets, both must pass the preselection); "
+             "see common/vbf_pair_definition.py.",
     )
     parser.add_argument(
         "--dnn-model-set",
